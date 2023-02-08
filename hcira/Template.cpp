@@ -56,8 +56,7 @@ public:
 		this->points = RotateBy(this->points, -radians);//3
 		this->points = ScaleTo(this->points, SquareSize);//4
 		this->points = TranslateTo(this->points, Origin);//5
-		this->vectorizedPoints = Vectorize(this->points); // for Protractor
-		
+		this->vectorizedPoints = Vectorize(this->points); // for Protractor	
 	}
 	std::vector<Point>Resample(std::vector<Point> inputPoints, int n)
 	{
@@ -283,18 +282,20 @@ public:
 	std::vector<Unistroke> Unistrokes;
 
 
-	Result Recognize(const std::vector<Point>& points, const std::vector<Unistroke>& Unistrokes, bool useProtractor, double AngleRange, double AnglePrecision, double HalfDiagonal) {
+	Result Recognize( vector<Point>& points, bool useProtractor, double AngleRange, double AnglePrecision, double HalfDiagonal) {
 		auto t0 = std::chrono::high_resolution_clock::now();
-		Unistroke candidate(points);
+		string str = "";
+		Unistroke candidate(str,points);
 
 		int u = -1;
 		double b = INFINITY;
 		for (int i = 0; i < Unistrokes.size(); i++) {
 			double d;
+			Unistroke newUnistroke =Unistrokes[i];
 			if (useProtractor)
-				d = OptimalCosineDistance(Unistrokes[i].Vector, candidate.Vector);
+				d = OptimalCosineDistance(Unistrokes[i].vectorizedPoints, candidate.vectorizedPoints);
 			else
-				d = DistanceAtBestAngle(candidate.Points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
+				d = DistanceAtBestAngle(candidate.points, newUnistroke, -AngleRange, AngleRange, AnglePrecision);
 			if (d < b) {
 				b = d;
 				u = i;
@@ -303,7 +304,7 @@ public:
 
 		auto t1 = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-		return (u == -1) ? Result("No match.", 0.0, duration) : Result(Unistrokes[u].Name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
+		return (u == -1) ? Result("No match.", 0.0, duration) : Result(Unistrokes[u].name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
 	}
 
 
