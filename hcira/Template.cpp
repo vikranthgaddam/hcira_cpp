@@ -5,6 +5,8 @@
 #include <cmath>
 #include <utility>
 #include <stdlib.h>
+#include <chrono>
+using namespace std;
 
 
 class Point {
@@ -59,48 +61,44 @@ public:
 	}
 	std::vector<Point>Resample(std::vector<Point> inputPoints, int n)
 	{
-		/*var I = PathLength(points) / (n - 1); // interval length
-		var D = 0.0;
-		var newpoints = new Array(points[0]);
-		for (var i = 1; i < points.length; i++)
+		double I = PathLength(points) / (n - 1); // interval length
+		double D = 0.0;
+		vector<Point> newpoints = { inputPoints[0]};
+		for (int i = 1; i < inputPoints.size(); i++)
 		{
-			var d = Distance(points[i - 1], points[i]);
+			double d = Distance(points[i - 1], points[i]);
 			if ((D + d) >= I)
 			{
-				var qx = points[i - 1].X + ((I - D) / d) * (points[i].X - points[i - 1].X);
-				var qy = points[i - 1].Y + ((I - D) / d) * (points[i].Y - points[i - 1].Y);
-				var q = new Point(qx, qy);
-				newpoints[newpoints.length] = q; // append new point 'q'
-				points.splice(i, 0, q); // insert 'q' at position i in points s.t. 'q' will be the next i
+				double qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
+				double qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
+				Point q = Point(qx, qy);
+				newpoints[newpoints.size()] = q; // append new point 'q'
+				points.insert(points.begin() + i, q); // insert 'q' at position i in points s.t. 'q' will be the next i
 				D = 0.0;
 			}
 			else D += d;
 		}
-		if (newpoints.length == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
-			newpoints[newpoints.length] = new Point(points[points.length - 1].X, points[points.length - 1].Y);
-		return newpoints;*/
+		if (newpoints.size() == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
+			newpoints[newpoints.size()] =  Point(points[points.size() - 1].x, points[points.size() - 1].y);
+		return newpoints;
 		//TODO
 		return inputPoints;
 	}
 	double IndicativeAngle(std::vector<Point> points)
-	{/*
-		var c = Centroid(points);
-		return Math.atan2(c.Y - points[0].Y, c.X - points[0].X);*/
-		//TODO
-		return 1.1;
+	{
+		Point c = Centroid(points);
+		return atan2(c.y - points[0].y, c.x - points[0].x);
 	}
 	std::vector<Point> ScaleTo(std::vector<Point> points, double size) // non-uniform scale; assumes 2D gestures (i.e., no lines)
-	{//TODO
-
-		/*
-		var B = BoundingBox(points);
-		var newpoints = new Array();
-		for (var i = 0; i < points.length; i++) {
-			var qx = points[i].X * (size / B.Width);
-			var qy = points[i].Y * (size / B.Height);
-			newpoints[newpoints.length] = new Point(qx, qy);
-		}*/
-		return points;
+	{
+		Rectangle B = BoundingBox(points);
+		vector<Point> newpoints = {};
+		for (int i = 0; i < points.size(); i++) {
+			double qx = points[i].x * (size / B.Width);
+			double qy = points[i].y * (size / B.Height);
+			newpoints[newpoints.size()] =  Point(qx, qy);
+		}
+		return newpoints;
 	}
 	std::vector<Point> TranslateTo(const std::vector<Point>& points, Point pt) {
 		//TODO check 
@@ -112,25 +110,20 @@ public:
 		}
 		return newPoints;
 	}
-	std::vector<double> Vectorize(const std::vector<Point>& points)
-	{
+	std::vector<double> Vectorize(const std::vector<Point>& points) {
 		double sum = 0.0;
 		std::vector<double> vector;
-		for (size_t i = 0; i < points.size(); i++)
-		{
-			vector.push_back(points[i].x);
-			vector.push_back(points[i].y);
-			sum += (points[i].x * points[i].x + points[i].y * points[i].y);
+		for (const auto& point : points) {
+			vector.push_back(point.x);
+			vector.push_back(point.y);
+			sum += point.x * point.x + point.y * point.y;
 		}
 		double magnitude = sqrt(sum);
-		for (size_t i = 0; i < vector.size(); i++)
-		{
-			vector[i] /= magnitude;
-		}
-		//TODO
-		return {};
-
+		for (auto& val : vector)
+			val /= magnitude;
+		return vector;
 	}
+
 	std::vector<Point> RotateBy(std::vector<Point>& points, double radians) // rotates points around centroid
 	{
 		Point c = Centroid(points);
@@ -145,18 +138,7 @@ public:
 		return newpoints;
 	}
 
-	Point Centroid(const std::vector<Point>& points)
-	{
-		double x = 0.0, y = 0.0;
-		for (const auto& point : points) {
-			x += point.x;
-			y += point.y;
-		}
-		x /= points.size();
-		y /= points.size();
-		return { x, y };
-	}
-
+	
 	Rectangle BoundingBox(std::vector<Point> points)
 	{
 		double minX = INFINITY, maxX = -INFINITY, minY = INFINITY, maxY = -INFINITY;
@@ -167,15 +149,6 @@ public:
 			maxY = (double)std::max(maxY, points[i].y);
 		}
 		return Rectangle(minX, minY, maxX - minX, maxY - minY);
-	}
-	double PathDistance(std::vector<Point> pts1, std::vector<Unistroke> inputStrokes)
-
-	{
-		std::vector<Point> pts2 = inputStrokes.points ;//TODO 
-		double d = 0.0;
-		for (int i = 0; i < pts1.size(); i++) // assumes pts1.size() == pts2.size()
-			d += Distance(pts1[i], pts2[i]);
-		return d / pts1.size();
 	}
 	double PathLength(std::vector<Point> points)
 	{
@@ -190,59 +163,34 @@ public:
 		double dy = p2.y - p1.y;
 		return std::sqrt(dx * dx + dy * dy);
 	}
-	double OptimalCosineDistance(const std::vector<double>& v1, const std::vector<double>& v2)
+	Point Centroid(const std::vector<Point>& points)
 	{
-		double a = 0.0;
-		double b = 0.0;
-
-		for (int i = 0; i < v1.size(); i += 2)
-		{
-			a += v1[i] * v2[i] + v1[i + 1] * v2[i + 1];
-			b += v1[i] * v2[i + 1] - v1[i + 1] * v2[i];
+		double x = 0.0, y = 0.0;
+		for (const auto& point : points) {
+			x += point.x;
+			y += point.y;
 		}
-
-		double angle = atan(b / a);
-		return acos(a * cos(angle) + b * sin(angle));
-	}
-	double DistanceAtBestAngle(std::vector<Point>& points, std::vector<Unistroke>& T, double a, double b, double threshold)
-	{
-		double x1 = Phi * a + (1.0 - Phi) * b;
-		double f1 = DistanceAtAngle(points, T, x1);
-		double x2 = (1.0 - Phi) * a + Phi * b;
-		double f2 = DistanceAtAngle(points, T, x2);
-		while (std::abs(b - a) > threshold)
-		{
-			if (f1 < f2) {
-				b = x2;
-				x2 = x1;
-				f2 = f1;
-				x1 = Phi * a + (1.0 - Phi) * b;
-				f1 = DistanceAtAngle(points, T, x1);
-			}
-			else {
-				a = x1;
-				x1 = x2;
-				f1 = f2;
-				x2 = (1.0 - Phi) * a + Phi * b;
-				f2 = DistanceAtAngle(points, T, x2);
-			}
-		}
-		return std::min(f1, f2);
-	}
-	double DistanceAtAngle(std::vector<Point>& points, std::vector<Unistroke> &T, double radians)
-	{
-		std::vector<Point> newpoints = RotateBy(points, radians);
-
-		return PathDistance(newpoints, T);
+		x /= points.size();
+		y /= points.size();
+		return { x, y };
 	}
 
+	
 
 
 };
 
+struct Result {
+	std::string Name;
+	double Score;
+	int Time;
+
+	Result(const std::string& name, double score, int time) : Name(name), Score(score), Time(time) {}
+};
 
 
-class GestureRecognizer  {
+
+class GestureRecognizer   {
 
 public:
 	GestureRecognizer() {
@@ -312,45 +260,142 @@ public:
 		std::vector<Point> pigtail = { Point(81, 219), Point(84, 218), Point(86, 220), Point(88, 220), Point(90, 220), Point(92, 219), Point(95, 220), Point(97, 219), Point(99, 220), Point(102, 218), Point(105, 217), Point(107, 216), Point(110, 216), Point(113, 214), Point(116, 212), Point(118, 210), Point(121, 208), Point(124, 205), Point(126, 202), Point(129, 199), Point(132, 196), Point(136, 191), Point(139, 187), Point(142, 182), Point(144, 179), Point(146, 174), Point(148, 170), Point(149, 168), Point(151, 162), Point(152, 160), Point(152, 157), Point(152, 155), Point(152, 151), Point(152, 149), Point(152, 146), Point(149, 142), Point(148, 139), Point(145, 137), Point(141, 135), Point(139, 135), Point(134, 136), Point(130, 140), Point(128, 142), Point(126, 145), Point(122, 150), Point(119, 158), Point(117, 163), Point(115, 170), Point(114, 175), Point(117, 184), Point(120, 190), Point(125, 199), Point(129, 203), Point(133, 208), Point(138, 213), Point(145, 215), Point(155, 218), Point(164, 219), Point(166, 219), Point(177, 219), Point(182, 218), Point(192, 216), Point(196, 213), Point(199, 212), Point(201, 211)
 		};
 
-		std::vector<String> names = [];
-		this->Unistrokes.push_back(Unistroke("triangle", trianglePoints));
-		this->Unistrokes.push_back(Unistroke("x", xPoints));
-		this->Unistrokes.push_back(Unistroke("rectangle", xrectanglePoints));
-		this->Unistrokes.push_back(Unistroke("circle", circle));
-		this->Unistrokes.push_back(Unistroke("check", checkPoints));
-		this->Unistrokes.push_back(Unistroke("caret", caret));
-		this->Unistrokes.push_back(Unistroke("zig zag", zigZag));
-		this->Unistrokes.push_back(Unistroke("arrow", arrow));
-		this->Unistrokes.push_back(Unistroke("left square bracket", leftsquarebracket));
-		this->Unistrokes.push_back(Unistroke("right square bracket", rightsquarebracket));
-		this->Unistrokes.push_back(Unistroke("v", v));
-		this->Unistrokes.push_back(Unistroke("delete", deletePoints));
-		this->Unistrokes.push_back(Unistroke("left curly bracket", leftCB));
-		this->Unistrokes.push_back(Unistroke("right curly bracket", rightCB));
-		this->Unistrokes.push_back(Unistroke("star", star));
-		this->Unistrokes.push_back(Unistroke("pigtail", pigtail));
+		std::vector<std::string> names = { "triangle","x","rectangle","circle","check","caret","zig zag","arrow","left square bracket",
+			"right square bracket","v","delete","left curly brace","right curly brace","star","pigtail" };
+		this->Unistrokes.push_back(Unistroke(names[0], trianglePoints));
+		this->Unistrokes.push_back(Unistroke(names[1], xPoints));
+		this->Unistrokes.push_back(Unistroke(names[2], xrectanglePoints));
+		this->Unistrokes.push_back(Unistroke(names[3], circle));
+		this->Unistrokes.push_back(Unistroke(names[4], checkPoints));
+		this->Unistrokes.push_back(Unistroke(names[5], caret));
+		this->Unistrokes.push_back(Unistroke(names[6], zigZag));
+		this->Unistrokes.push_back(Unistroke(names[7], arrow));
+		this->Unistrokes.push_back(Unistroke(names[8], leftsquarebracket));
+		this->Unistrokes.push_back(Unistroke(names[9], rightsquarebracket));
+		this->Unistrokes.push_back(Unistroke(names[10], v));
+		this->Unistrokes.push_back(Unistroke(names[11], deletePoints));
+		this->Unistrokes.push_back(Unistroke(names[12], leftCB));
+		this->Unistrokes.push_back(Unistroke(names[13], rightCB));
+		this->Unistrokes.push_back(Unistroke(names[14], star));
+		this->Unistrokes.push_back(Unistroke(names[15], pigtail));
 
 	}
 	std::vector<Unistroke> Unistrokes;
 
 
-	void Recognise(std::vector<Point>candidateStrokes, bool useProtactor) {
-		std::string str = "";
-	   Unistroke candidate(str, candidateStrokes);
+	Result Recognize(const std::vector<Point>& points, const std::vector<Unistroke>& Unistrokes, bool useProtractor, double AngleRange, double AnglePrecision, double HalfDiagonal) {
+		auto t0 = std::chrono::high_resolution_clock::now();
+		Unistroke candidate(points);
 
+		int u = -1;
+		double b = INFINITY;
 		for (int i = 0; i < Unistrokes.size(); i++) {
 			double d;
-			if (useProtactor)
-				d = OptimalCosineDistance(Unistrokes[i].vectorizedPoints, candidate.vectorizedPoints); // Protractor
+			if (useProtractor)
+				d = OptimalCosineDistance(Unistrokes[i].Vector, candidate.Vector);
 			else
-				d = DistanceAtBestAngle(candidate.points, Unistrokes[i], -AngleRange, +AngleRange, AnglePrecision); // Golden Section Search (original $1)
+				d = DistanceAtBestAngle(candidate.Points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
 			if (d < b) {
-				b = d; // best (least) distance
-				u = i; // unistroke index
+				b = d;
+				u = i;
 			}
 		}
 
+		auto t1 = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+		return (u == -1) ? Result("No match.", 0.0, duration) : Result(Unistrokes[u].Name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
 	}
+
+
+	double OptimalCosineDistance(const std::vector<double>& v1, const std::vector<double>& v2)
+	{
+		double a = 0.0;
+		double b = 0.0;
+
+		for (int i = 0; i < v1.size(); i += 2)
+		{
+			a += v1[i] * v2[i] + v1[i + 1] * v2[i + 1];
+			b += v1[i] * v2[i + 1] - v1[i + 1] * v2[i];
+		}
+
+		double angle = atan(b / a);
+		return acos(a * cos(angle) + b * sin(angle));
+	}
+	double DistanceAtBestAngle( std::vector<Point>& points,  vector<Unistroke>& T, double a, double b, double threshold) {
+		double x1 = Phi * a + (1.0 - Phi) * b;
+		double f1 = DistanceAtAngle(points, T, x1);
+		double x2 = (1.0 - Phi) * a + Phi * b;
+		double f2 = DistanceAtAngle(points, T, x2);
+		while (std::abs(b - a) > threshold) {
+			if (f1 < f2) {
+				b = x2;
+				x2 = x1;
+				f2 = f1;
+				x1 = Phi * a + (1.0 - Phi) * b;
+				f1 = DistanceAtAngle(points, T, x1);
+			}
+			else {
+				a = x1;
+				x1 = x2;
+				f1 = f2;
+				x2 = (1.0 - Phi) * a + Phi * b;
+				f2 = DistanceAtAngle(points, T, x2);
+			}
+		}
+		return std::min(f1, f2);
+	}
+	double DistanceAtAngle(std::vector<Point>& points, std::vector<Unistroke>& T, double radians)
+	{
+		std::vector<Point> newpoints = RotateBy(points, radians);
+
+		return PathDistance(newpoints, T);
+	}
+
+	std::vector<Point> RotateBy(std::vector<Point>& points, double radians) // rotates points around centroid
+	{
+		Point c = Centroid(points);
+		double cos = std::cos(radians);
+		double sin = std::sin(radians);
+		std::vector<Point> newpoints;
+		for (auto& point : points) {
+			double qx = (point.x - c.x) * cos - (point.y - c.y) * sin + c.x;
+			double qy = (point.x - c.x) * sin + (point.y - c.y) * cos + c.y;
+			newpoints.emplace_back(qx, qy);
+		}
+		return newpoints;
+	}
+
+	double PathDistance(vector<Point> pts1, vector<Unistroke> inputStrokes)
+
+	{
+		std::vector<Point> pts2 = inputStrokes[0].points;//TODO 
+		double d = 0.0;
+		for (int i = 0; i < pts1.size(); i++) // assumes pts1.size() == pts2.size()
+			d += Distance(pts1[i], pts2[i]);
+		return d / pts1.size();
+	}
+
+	Point Centroid(const std::vector<Point>& points)
+	{
+		double x = 0.0, y = 0.0;
+		for (const auto& point : points) {
+			x += point.x;
+			y += point.y;
+		}
+		x /= points.size();
+		y /= points.size();
+		return { x, y };
+	}
+	double Distance(Point p1, Point p2)
+	{
+		double dx = p2.x - p1.x;
+		double dy = p2.y - p1.y;
+		return std::sqrt(dx * dx + dy * dy);
+	}
+
+
+
+
 
 };
 
