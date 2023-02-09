@@ -1,6 +1,7 @@
 #include <wx/wx.h>
 #include <wx/graphics.h>
 
+
 class MyCanvas : public wxWindow
 {
 public:
@@ -11,8 +12,9 @@ public:
         Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
         Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
         Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
+        
     }
-
+    
 private:
     //event handler is called when the canvas is repainted
     void OnPaint(wxPaintEvent& event)
@@ -33,12 +35,15 @@ private:
     {
         m_points.clear();
         m_points.push_back(event.GetPosition());
+
+        //a.Recognize(m_points,true);
         CaptureMouse();
     }
     //event handler is called when the left mouse button is released
     void OnLeftUp(wxMouseEvent& event)
     {
         m_points.push_back(event.GetPosition());
+
         ReleaseMouse();
         Refresh();
     }

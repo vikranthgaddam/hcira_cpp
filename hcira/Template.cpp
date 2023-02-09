@@ -1,11 +1,11 @@
 #include <vector>
 #include <string>
-# define M_PI 3.14159265358979323846
 #include <math.h>
 #include <cmath>
 #include <utility>
 #include <stdlib.h>
 #include <chrono>
+#include <wx/math.h>
 using namespace std;
 
 
@@ -19,15 +19,17 @@ public:
 	}
 };
 
-struct Rectangle {
+struct Rect {
 	double X;
 	double Y;
 	double Width;
 	double Height;
 
-	Rectangle(double x, double y, double width, double height)
+	Rect(double x, double y, double width, double height)
 		: X(x), Y(y), Width(width), Height(height) {}
 };
+
+double Deg2Rad(double d) { return (d * M_PI / 180.0); }
 
 const int NumUnistrokes = 16;
 const int NumPoints = 64;
@@ -39,7 +41,6 @@ const double AngleRange = Deg2Rad(45.0);
 const double AnglePrecision = Deg2Rad(2.0);
 const double Phi = 0.5 * (-1.0 + sqrt(5.0));
 
-double Deg2Rad(double d) { return (d * M_PI / 180.0); }
 
 struct Unistroke {
 public:
@@ -81,7 +82,6 @@ public:
 			newpoints[newpoints.size()] =  Point(points[points.size() - 1].x, points[points.size() - 1].y);
 		return newpoints;
 		//TODO
-		return inputPoints;
 	}
 	double IndicativeAngle(std::vector<Point> points)
 	{
@@ -90,7 +90,7 @@ public:
 	}
 	std::vector<Point> ScaleTo(std::vector<Point> points, double size) // non-uniform scale; assumes 2D gestures (i.e., no lines)
 	{
-		Rectangle B = BoundingBox(points);
+		Rect B = BoundingBox(points);
 		vector<Point> newpoints = {};
 		for (int i = 0; i < points.size(); i++) {
 			double qx = points[i].x * (size / B.Width);
@@ -138,7 +138,7 @@ public:
 	}
 
 	
-	Rectangle BoundingBox(std::vector<Point> points)
+	Rect BoundingBox(std::vector<Point> points)
 	{
 		double minX = INFINITY, maxX = -INFINITY, minY = INFINITY, maxY = -INFINITY;
 		for (int i = 0; i < points.size(); i++) {
@@ -147,7 +147,7 @@ public:
 			maxX = (double)std::max(maxX, points[i].x);
 			maxY = (double)std::max(maxY, points[i].y);
 		}
-		return Rectangle(minX, minY, maxX - minX, maxY - minY);
+		return Rect(minX, minY, maxX - minX, maxY - minY);
 	}
 	double PathLength(std::vector<Point> points)
 	{
@@ -282,20 +282,20 @@ public:
 	std::vector<Unistroke> Unistrokes;
 
 
-	Result Recognize( vector<Point>& points, bool useProtractor, double AngleRange, double AnglePrecision, double HalfDiagonal) {
+	Result Recognize( vector<Point>& points, bool useProtractor) {
 		auto t0 = std::chrono::high_resolution_clock::now();
 		string str = "";
-		Unistroke candidate(str,points);
+		Unistroke candidate(str,points);//resampled here
 
 		int u = -1;
 		double b = INFINITY;
 		for (int i = 0; i < Unistrokes.size(); i++) {
 			double d;
-			Unistroke newUnistroke =Unistrokes[i];
+			
 			if (useProtractor)
 				d = OptimalCosineDistance(Unistrokes[i].vectorizedPoints, candidate.vectorizedPoints);
 			else
-				d = DistanceAtBestAngle(candidate.points, newUnistroke, -AngleRange, AngleRange, AnglePrecision);
+				d = DistanceAtBestAngle(candidate.points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
 			if (d < b) {
 				b = d;
 				u = i;
@@ -322,7 +322,7 @@ public:
 		double angle = atan(b / a);
 		return acos(a * cos(angle) + b * sin(angle));
 	}
-	double DistanceAtBestAngle( std::vector<Point>& points,  vector<Unistroke>& T, double a, double b, double threshold) {
+	double DistanceAtBestAngle( std::vector<Point>& points,  Unistroke & T, double a, double b, double threshold) {
 		double x1 = Phi * a + (1.0 - Phi) * b;
 		double f1 = DistanceAtAngle(points, T, x1);
 		double x2 = (1.0 - Phi) * a + Phi * b;
@@ -345,7 +345,7 @@ public:
 		}
 		return std::min(f1, f2);
 	}
-	double DistanceAtAngle(std::vector<Point>& points, std::vector<Unistroke>& T, double radians)
+	double DistanceAtAngle(std::vector<Point>& points, Unistroke& T, double radians)
 	{
 		std::vector<Point> newpoints = RotateBy(points, radians);
 
@@ -366,10 +366,10 @@ public:
 		return newpoints;
 	}
 
-	double PathDistance(vector<Point> pts1, vector<Unistroke> inputStrokes)
+	double PathDistance(vector<Point> pts1, Unistroke inputStrokes)
 
 	{
-		std::vector<Point> pts2 = inputStrokes[0].points;//TODO 
+		std::vector<Point> pts2 = inputStrokes.points;//TODO 
 		double d = 0.0;
 		for (int i = 0; i < pts1.size(); i++) // assumes pts1.size() == pts2.size()
 			d += Distance(pts1[i], pts2[i]);
