@@ -201,24 +201,24 @@ public:
 	GestureRecognizer() {
 		this->Unistrokes = std::vector<Unistroke>();
 		std::vector<Point> trianglePoints = {
-Point(137, 139), Point(135, 141), Point(133, 144), Point(132, 146),
-Point(130, 149), Point(128, 151), Point(126, 155), Point(123, 160),
-Point(120, 166), Point(116, 171), Point(112, 177), Point(107, 183),
-Point(102, 188), Point(100, 191), Point(95, 195), Point(90, 199),
-Point(86, 203), Point(82, 206), Point(80, 209), Point(75, 213),
-Point(73, 213), Point(70, 216), Point(67, 219), Point(64, 221),
-Point(61, 223), Point(60, 225), Point(62, 226), Point(65, 225),
-Point(67, 226), Point(74, 226), Point(77, 227), Point(85, 229),
-Point(91, 230), Point(99, 231), Point(108, 232), Point(116, 233),
-Point(125, 233), Point(134, 234), Point(145, 233), Point(153, 232),
-Point(160, 233), Point(170, 234), Point(177, 235), Point(179, 236),
-Point(186, 237), Point(193, 238), Point(198, 239), Point(200, 237),
-Point(202, 239), Point(204, 238), Point(206, 234), Point(205, 230),
-Point(202, 222), Point(197, 216), Point(192, 207), Point(186, 198),
-Point(179, 189), Point(174, 183), Point(170, 178), Point(164, 171),
-Point(161, 168), Point(154, 160), Point(148, 155), Point(143, 150),
-Point(138, 148), Point(136, 148)
-		};
+		Point(137, 139), Point(135, 141), Point(133, 144), Point(132, 146),
+		Point(130, 149), Point(128, 151), Point(126, 155), Point(123, 160),
+		Point(120, 166), Point(116, 171), Point(112, 177), Point(107, 183),
+		Point(102, 188), Point(100, 191), Point(95, 195), Point(90, 199),
+		Point(86, 203), Point(82, 206), Point(80, 209), Point(75, 213),
+		Point(73, 213), Point(70, 216), Point(67, 219), Point(64, 221),
+		Point(61, 223), Point(60, 225), Point(62, 226), Point(65, 225),
+		Point(67, 226), Point(74, 226), Point(77, 227), Point(85, 229),
+		Point(91, 230), Point(99, 231), Point(108, 232), Point(116, 233),
+		Point(125, 233), Point(134, 234), Point(145, 233), Point(153, 232),
+		Point(160, 233), Point(170, 234), Point(177, 235), Point(179, 236),
+		Point(186, 237), Point(193, 238), Point(198, 239), Point(200, 237),
+		Point(202, 239), Point(204, 238), Point(206, 234), Point(205, 230),
+		Point(202, 222), Point(197, 216), Point(192, 207), Point(186, 198),
+		Point(179, 189), Point(174, 183), Point(170, 178), Point(164, 171),
+		Point(161, 168), Point(154, 160), Point(148, 155), Point(143, 150),
+		Point(138, 148), Point(136, 148)
+				};
 		std::vector<Point> xPoints = { Point(87, 142),  Point(89, 145),  Point(91, 148),  Point(93, 151)
 			,  Point(96, 155),  Point(98, 157),  Point(100, 160),  Point(102, 162),  Point(106, 167),
 			 Point(108, 169),  Point(110, 171),  Point(115, 177),  Point(119, 183), Point(123, 189),
@@ -421,10 +421,12 @@ public:
         Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
         Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
         Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
-
+		  m_output = new wxStaticText(this, wxID_ANY, "");
+		wxFont font(20, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+		m_font = font;
+		m_output->SetFont(m_font);
+		
     }
-
-
 private:
     //event handler is called when the canvas is repainted
     void OnPaint(wxPaintEvent& event)
@@ -446,7 +448,7 @@ private:
         m_points.clear();
         m_points.push_back(event.GetPosition());
 
-        //a.Recognize(m_points,true);
+        //a.Recognize(m_points,true); did't use this again 
         CaptureMouse();
     }
     //event handler is called when the left mouse button is released
@@ -459,13 +461,13 @@ private:
             points.emplace_back(wxPoint.x, wxPoint.y);
         }
 		GestureRecognizer GR;
+		
+
 		Result res = GR.Recognize(points, false);
-        if (m_output != nullptr) {
-            m_output->SetLabel(res.Name);
-        }
-        else {
-            m_output = new wxStaticText(this, wxID_ANY, res.Name);
-        }
+		wxString outputStr = wxString::Format("Result: %s (%f) in %d ms", res.Name, res.Score, res.Time);
+        m_output->SetLabel(outputStr);
+			
+   
         //for (auto point : points) {
         //    cout << "x: " << point.x << " y: " << point.y << endl; //this didn't write the output on the console rather has to set a breakpoint to check the values of the variables.
         //}
@@ -476,6 +478,7 @@ private:
     {
         if (event.Dragging() && event.LeftIsDown())
         {
+			m_output->SetLabel("Recording unistroke...");
             m_points.push_back(event.GetPosition());
             Refresh();
         }
