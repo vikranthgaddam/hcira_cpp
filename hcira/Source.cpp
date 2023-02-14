@@ -1,3 +1,5 @@
+//Author Raghav Gupta and Vikranth Gaddam
+//CPP of $1 Recognizer
 #include <wx/wx.h>
 #include "user_interface.cpp"
 #include <wx/graphics.h>
@@ -12,7 +14,7 @@
 #include <iostream>
 using namespace std;
 
-class Point {
+class Point {//Defining point struct 
 public:
     double x;
     double y;
@@ -22,7 +24,7 @@ public:
     }
 };
 
-struct Rect {
+struct Rect { //Defining rectangle for bounding box
 	double X;
 	double Y;
 	double Width;
@@ -31,26 +33,27 @@ struct Rect {
 	Rect(double x, double y, double width, double height)
 		: X(x), Y(y), Width(width), Height(height) {}
 };
-const int NumUnistrokes = 16;
+const int NumUnistrokes = 16;//Tempates loaded
 const int NumPoints = 64;
 const double SquareSize = 250.0;
 const Point Origin = { 0, 0 };
-const double Diagonal = sqrt(SquareSize * SquareSize + SquareSize * SquareSize);
+const double Diagonal = sqrt(SquareSize * SquareSize + SquareSize * SquareSize);//Diagonal length
 const double HalfDiagonal = 0.5 * Diagonal;
 const double AngleRange = 45.0 * M_PI / 180.0;
 const double AnglePrecision = 2.0 * M_PI / 180.0;
 const double Phi = 0.5 * (-1.0 + sqrt(5.0));
 
 
-struct Unistroke {
+struct Unistroke {//This is where preprocessing happens for points
 public:
 	std::string name;
 	std::vector<Point> points;
 	std::vector<double> vectorizedPoints;
 
 
-	Unistroke(std::string& name, std::vector<Point>& points)
+	Unistroke(std::string& name, std::vector<Point>& points) //Constructor where the point are preprocessed and stored
 	{
+		//Note 1.Resample 2.Rotate By needs indicative angle 3.Scale 4.Transalate 5.For Protractor -- Vectorize
 		this->name = name;
 		this->points = Resample(points, NumPoints);//1
 		double radians = IndicativeAngle(this->points);//2
@@ -82,7 +85,7 @@ public:
 		if (newpoints.size() == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
 			newpoints.push_back(Point(points[points.size() - 1].x, points[points.size() - 1].y));
 		return newpoints;
-		//TODO
+		//TODO Vikranth
 	}
 	double IndicativeAngle(std::vector<Point> points)
 	{
@@ -99,7 +102,7 @@ public:
 			double qx = points[i].x * (size / B.Width);
 			double qy = points[i].y * (size / B.Height);
 			newpoints.push_back(Point(qx, qy));
-		}
+		}//TODO Raghav
 		return newpoints;
 	}
 
@@ -111,7 +114,7 @@ public:
 		{
 			Point q = { point.x + pt.x - c.x, point.y + pt.y - c.y };
 			newPoints.push_back(q);
-		}
+		}//TODO Vikranth
 		return newPoints;
 
 	}
@@ -122,7 +125,7 @@ public:
 			vector.push_back(point.x);
 			vector.push_back(point.y);
 			sum += point.x * point.x + point.y * point.y;
-		}
+		}//TODO Raghav
 		double magnitude = sqrt(sum);
 		for (auto& val : vector)
 			val /= magnitude;
@@ -130,7 +133,7 @@ public:
 	}
 
 	std::vector<Point> RotateBy(std::vector<Point>& points, double radians) // rotates points around centroid
-	{
+	{//TODO Vikranth
 		Point c = Centroid(points);
 		double cos = std::cos(radians);
 		double sin = std::sin(radians);
@@ -145,7 +148,7 @@ public:
 
 
 	Rect BoundingBox(std::vector<Point> points)
-	{
+	{//TODO Vikranth
 		double minX = INFINITY, maxX = -INFINITY, minY = INFINITY, maxY = -INFINITY;
 		for (int i = 0; i < points.size(); i++) {
 			minX = (double)std::min(minX, points[i].x);
@@ -185,7 +188,7 @@ public:
 
 };
 
-struct Result {
+struct Result {//Result struct for displaying in canvas
 	std::string Name;
 	double Score;
 	int Time;
@@ -199,7 +202,9 @@ class GestureRecognizer {
 
 public:
 	GestureRecognizer() {
+		//Intialize a empty vector with type Unistroke
 		this->Unistrokes = std::vector<Unistroke>();
+		//Note:Need to add points here 
 		std::vector<Point> trianglePoints = {
 		Point(137, 139), Point(135, 141), Point(133, 144), Point(132, 146),
 		Point(130, 149), Point(128, 151), Point(126, 155), Point(123, 160),
@@ -271,6 +276,7 @@ public:
 
 		std::vector<std::string> names = { "triangle","x","rectangle","circle","check","caret","zig zag","arrow","left square bracket",
 			"right square bracket","v","delete","left curly brace","right curly brace","star","pigtail" };
+		//Pushing the points with Unistroke initialization 
 		this->Unistrokes.push_back(Unistroke(names[0], trianglePoints));
 		this->Unistrokes.push_back(Unistroke(names[1], xPoints));
 		this->Unistrokes.push_back(Unistroke(names[2], xrectanglePoints));
@@ -293,9 +299,10 @@ public:
 
 
 	Result Recognize(vector<Point>& points, bool useProtractor) {
+		//TODO Raghav Vikranth
 		auto t0 = std::chrono::high_resolution_clock::now();
 		string str = "";
-		Unistroke candidate(str, points);//resampled here
+		Unistroke candidate(str, points);//resampled here for candiate or input gesture
 
 		int u = -1;
 		double b = INFINITY;
@@ -313,7 +320,7 @@ public:
 		}
 
 		auto t1 = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
 		return (u == -1) ? Result("No match.", 0.0, duration) : Result(Unistrokes[u].name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
 	}
 
@@ -333,6 +340,7 @@ public:
 		return acos(a * cos(angle) + b * sin(angle));
 	}
 	double DistanceAtBestAngle(std::vector<Point>& points, Unistroke& T, double a, double b, double threshold) {
+		//TODO Vikranth
 		double x1 = Phi * a + (1.0 - Phi) * b;
 		double f1 = DistanceAtAngle(points, T, x1);
 		double x2 = (1.0 - Phi) * a + Phi * b;
@@ -357,6 +365,7 @@ public:
 	}
 	double DistanceAtAngle(std::vector<Point>& points, Unistroke& T, double radians)
 	{
+		//TODO Raghav
 		std::vector<Point> newpoints = RotateBy(points, radians);
 
 		return PathDistance(newpoints, T);
@@ -364,6 +373,7 @@ public:
 
 	std::vector<Point> RotateBy(std::vector<Point>& points, double radians) // rotates points around centroid
 	{
+		//TODO Vikranth
 		Point c = Centroid(points);
 		double cos = std::cos(radians);
 		double sin = std::sin(radians);
@@ -378,7 +388,7 @@ public:
 
 	double PathDistance(vector<Point> pts1, Unistroke inputStrokes)
 
-	{
+	{//TODO Vikranth
 		std::vector<Point> pts2 = inputStrokes.points;//TODO 
 		double d = 0.0;
 		for (int i = 0; i < pts1.size(); i++) // assumes pts1.size() == pts2.size()
@@ -388,6 +398,7 @@ public:
 
 	Point Centroid(const std::vector<Point>& points)
 	{
+		//TODO Vikranth
 		double x = 0.0, y = 0.0;
 		for (const auto& point : points) {
 			x += point.x;
@@ -399,6 +410,7 @@ public:
 	}
 	double Distance(Point p1, Point p2)
 	{
+		//TODO Vikranth
 		double dx = p2.x - p1.x;
 		double dy = p2.y - p1.y;
 		return std::sqrt(dx * dx + dy * dy);
@@ -460,7 +472,7 @@ private:
         for (auto& wxPoint : m_points) {
             points.emplace_back(wxPoint.x, wxPoint.y);
         }
-		GestureRecognizer GR;
+		GestureRecognizer GR;//Our $1 recognizer object
 		
 
 		Result res = GR.Recognize(points, false);
