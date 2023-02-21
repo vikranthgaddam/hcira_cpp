@@ -310,8 +310,8 @@ public:
 		string str = "";
 		Unistroke candidate(str, points);//resampled here for candiate or input gesture
 
-		int u = -1;
-		double b = INFINITY;
+		int u = -1;//If nothing matches the initializaiton
+		double b = INFINITY; //intMAX
 		for (int i = 0; i < Unistrokes.size(); i++) {
 			double d;
 
@@ -321,13 +321,14 @@ public:
 				d = DistanceAtBestAngle(candidate.points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
 			if (d < b) {
 				b = d;
-				u = i;
+				u = i; //its going to point at the template that is under consideration and saves the value for the same for the min distance
 			}
 		}
 
 		auto t1 = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
-		return (u == -1) ? Result("No match.", 0.0, duration) : Result(Unistrokes[u].name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
+		return (u == -1) ? Result("No match.", 0.0, duration) : 
+			Result(Unistrokes[u].name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
 	}
 
 
@@ -597,3 +598,4 @@ public:
 
 //creates an instance of the MyApp
 wxIMPLEMENT_APP(MyApp);
+
