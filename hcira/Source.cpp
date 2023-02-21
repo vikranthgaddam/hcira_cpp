@@ -12,6 +12,11 @@
 #include <chrono>
 #include <wx/math.h>
 #include <iostream>
+#include <tinyxml2.h>
+#include <iostream>
+#include <wx/log.h>
+#include <vector>
+#include <sstream>
 using namespace std;
 
 class Point {//Defining point struct 
@@ -33,6 +38,7 @@ struct Rect { //Defining rectangle for bounding box
 	Rect(double x, double y, double width, double height)
 		: X(x), Y(y), Width(width), Height(height) {}
 };
+
 const int NumUnistrokes = 16;//Tempates loaded
 const int NumPoints = 64;
 const double SquareSize = 250.0;
@@ -437,6 +443,59 @@ public:
 		wxFont font(20, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 		m_font = font;
 		m_output->SetFont(m_font);
+		//XML Files points to be loaded
+		vector<Point> points;
+
+		tinyxml2::XMLDocument doc;
+		wxLog::SetActiveTarget(new wxLogStderr);
+		//XML File 
+		doc.LoadFile("C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s01 (pilot)/slow/arrow01.xml");
+
+		// Get the root element of the XML document
+		tinyxml2::XMLElement* root = doc.FirstChildElement("Gesture");
+
+
+		// Get the value of attributes in the root element
+		const char* gestureName = root->Attribute("Name");
+		const char* appName = root->Attribute("AppName");
+		int numPts = root->IntAttribute("NumPts");
+		wxLogMessage(gestureName);
+		wxLogMessage(appName);
+
+		//wxLogMessage(numPts);
+
+		//std::cout << "Gesture name: " << gestureName << std::endl;
+		//std::cout << "Application name: " << appName << std::endl;
+		//std::cout << "Number of points: " << numPts << std::endl;
+
+		// Iterate through the child elements (i.e., the points) of the root element
+		for (tinyxml2::XMLElement* point = root->FirstChildElement(); point != NULL; point = point->NextSiblingElement())
+		{
+			// Get the values of the X, Y, and T attributes of the point element
+			double x = point->IntAttribute("X");
+			double y = point->IntAttribute("Y");
+			double t = point->IntAttribute("T");
+			wxLogMessage("x co ordinate %d",x);
+			wxLogMessage("y co ordinate %d", y);
+			wxLogMessage("Time %d", t);
+			Point tempPoint(x,y);
+			points.push_back(tempPoint);
+		
+
+			//std::cout << "X: " << x << ", Y: " << y << ", T: " << t << std::endl;
+		}
+		//1.Capture the points from XML 
+		//2. Resample them with with unistroke and add gesture label 
+		//3. Store these points in the the class instance of GestureRecognizer
+		for (const Point& point : points) {
+			wxLogMessage("Point: (%d, %d)", point.x, point.y);
+		}
+
+		
+
+		// Log a message
+		//wxLogMessage("Hello, world!");
+		
 		
     }
 private:
@@ -505,17 +564,36 @@ private:
 
 
 
+
 class MyApp : public wxApp
 {
 public:
     virtual bool OnInit()
     {
         wxFrame* frame = new wxFrame(NULL, wxID_ANY, "$1 Recognizer");
-        MyCanvas* canvas = new MyCanvas(frame);
-        frame->Show();
+       MyCanvas* canvas = new MyCanvas(frame);
+		frame->Show();
+	
+	
         return true;
     }
+
+	void LoadVal() {
+		//Importing points from XML to my data set of points
+		//16 gestures from 10 users 
+		//Total 11 files
+
+	
+	}
+
+
+
+
+	
+	
+
 };
+
 
 //creates an instance of the MyApp
 wxIMPLEMENT_APP(MyApp);
