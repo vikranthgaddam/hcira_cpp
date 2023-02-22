@@ -338,90 +338,91 @@ public:
 //we can import this from the already written code and use this here. 
 //Or we can simply import the necessary code here and run the recognize
 
-class OfflineRecognizer {
-private:
-	GestureRecognizer recognizer;
-     map< string,  map< string,  map< string,  vector< vector<Point>>>>> offlineData;
-     map< string,  map< string,  map< string,  vector< vector<Point>>>>> preProcessedData;
+	class OfflineRecognizer {
+	private:
+		GestureRecognizer recognizer;
+		map< string, map< string, map< string, vector< vector<Point>>>>> offlineData;
+		map< string, map< string, map< string, vector< vector<Point>>>>> preProcessedData;
 
-	void preProcessOfflineData() {
-		preProcessedData = offlineData;
-		for (auto& user : offlineData) {
-			for (auto& speed : user.second) {
-				if (speed.first == "medium") {
-					for (auto& gesture : speed.second) {
-						preProcessedData[user.first][speed.first][gesture.first] =  vector< vector<Point>>();
-						for (auto& points : gesture.second) {
-							Unistroke unistroke(gesture.first, points);
-							preProcessedData[user.first][speed.first][gesture.first].push_back(unistroke.vectorizedPoints);
+		void preProcessOfflineData() {
+			preProcessedData = offlineData;
+			for (auto& user : offlineData) {
+				for (auto& speed : user.second) {
+					if (speed.first == "medium") {
+						for (auto& gesture : speed.second) {
+							preProcessedData[user.first][speed.first][gesture.first] = vector< vector<Point>>();
+							for (auto& points : gesture.second) {
+								Unistroke unistroke(gesture.first, points);
+								preProcessedData[user.first][speed.first][gesture.first].push_back(unistroke.vectorizedPoints);
+							}
 						}
 					}
 				}
 			}
 		}
-	}
 
 
-    void recognizeOfflineData() {
-         map< string,  map<int,  map< string, int>>> score;
-        for (auto& user : preProcessedData) {
-            score[user.first] =  map< string, double>();
-            for (int gesture = 1; gesture <= 10; gesture++) {
-                score[user.first][gesture] = 0.0;
-                for (int i = 1; i <= 100; i++) {
-                    auto [training_set, testing_set] = getSplitData(preProcessedData[user.first]["medium"], 9);
-					GestureRecognizer recognizer(training_set);
-                    auto& templates = training_set[gesture];
-                    auto& candidates = preProcessedData[user.first]["medium"][gesture];
-                     vector<int> selected_templates;
-                     vector<int> selected_candidates;
-                    // select E random templates
-                    while (selected_templates.size() < 9) {
-                        int idx = rand() % templates.size();
-                        if ( find(selected_templates.begin(), selected_templates.end(), idx) == selected_templates.end()) {
-                            selected_templates.push_back(idx);
-                        }
-                    }
-                    // select one random candidate
-                    int candidate_idx = rand() % candidates.size();
-                     string candidate_name = candidates[candidate_idx].first;
-                    // recognize candidate using selected templates
-                    auto [recognizedGesture, _, _, Nbest] = recognizer.recognizeGesture(candidates[candidate_idx].second, templates, 1);
-                    recognizedGesture = recognizedGesture.find("/") !=  string::npos ? recognizedGesture.substr(0, recognizedGesture.find("/")) : "";
-                    if (recognizedGesture == candidate_name) {
-                        score[user.first][gesture] += 1.0;
-                    }
-                }
-                score[user.first][gesture] /= 100.0;
-            }
-        }
-
-        writeToFile(dumps(score), "score.json");
-        // calculate and output average accuracy
-        double total_score = 0.0;
-        int total_count = 0;
-        for (auto& user : score) {
-            for (auto& example : user.second) {
-                for (auto& gesture : example.second) {
-                    total_score += gesture.second;
-                    total_count++;
-                }
-            }
-        }
-        double average_accuracy = total_score / total_count;
-         cout << "Average accuracy: " << average_accuracy <<  endl;
-    }
-
-	 pair< map< string,  vector< vector<Point>>>,  map< string,  vector<Point>>> getSplitData( map< string,  vector< vector<Point>>> gestures, int E) {
-		 map< string,  vector< vector<Point>>> training_set;
-		 map< string,  vector<Point>> testing_set;
-		 srand( time(nullptr));
-		for (auto& gesture : gestures) {
-			for (int i = 0; i < E; i++) {
-				training_set[gesture.first + "/" +  to_string(i)] = gesture.second[i];
+		void recognizeOfflineData() {
+			map< string, map<int, map< string, int>>> score;
+			for (auto& user : preProcessedData) {
+				score[user.first] = map< string, double>();
+				for (int gesture = 1; gesture <= 10; gesture++) {
+					score[user.first][gesture] = 0.0;
+					for (int i = 1; i <= 100; i++) {
+						auto [training_set, testing_set] = getSplitData(preProcessedData[user.first]["medium"], 9);
+						GestureRecognizer recognizer(training_set);
+						auto& templates = training_set[gesture];
+						auto& candidates = preProcessedData[user.first]["medium"][gesture];
+						vector<int> selected_templates;
+						vector<int> selected_candidates;
+						// select E random templates
+						while (selected_templates.size() < 9) {
+							int idx = rand() % templates.size();
+							if (find(selected_templates.begin(), selected_templates.end(), idx) == selected_templates.end()) {
+								selected_templates.push_back(idx);
+							}
+						}
+						// select one random candidate
+						int candidate_idx = rand() % candidates.size();
+						string candidate_name = candidates[candidate_idx].first;
+						// recognize candidate using selected templates
+						auto [recognizedGesture, _, _, Nbest] = recognizer.recognizeGesture(candidates[candidate_idx].second, templates, 1);
+						recognizedGesture = recognizedGesture.find("/") != string::npos ? recognizedGesture.substr(0, recognizedGesture.find("/")) : "";
+						if (recognizedGesture == candidate_name) {
+							score[user.first][gesture] += 1.0;
+						}
+					}
+					score[user.first][gesture] /= 100.0;
+				}
 			}
-			testing_set[gesture.first] = gesture.second[ rand() % (10 - E) + E];
+
+			writeToFile(dumps(score), "score.json");
+			// calculate and output average accuracy
+			double total_score = 0.0;
+			int total_count = 0;
+			for (auto& user : score) {
+				for (auto& example : user.second) {
+					for (auto& gesture : example.second) {
+						total_score += gesture.second;
+						total_count++;
+					}
+				}
+			}
+			double average_accuracy = total_score / total_count;
+			cout << "Average accuracy: " << average_accuracy << endl;
 		}
-		return  make_pair(training_set, testing_set);
+
+		pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> getSplitData(map< string, vector< vector<Point>>> gestures, int E) {
+			map< string, vector< vector<Point>>> training_set;
+			map< string, vector<Point>> testing_set;
+			srand(time(nullptr));
+			for (auto& gesture : gestures) {
+				for (int i = 0; i < E; i++) {
+					training_set[gesture.first + "/" + to_string(i)] = gesture.second[i];
+				}
+				testing_set[gesture.first] = gesture.second[rand() % (10 - E) + E];
+			}
+			return  make_pair(training_set, testing_set);
+		}
 	}
 // TODO    writetofile funciton
