@@ -315,7 +315,7 @@ public:
 		for (int i = 0; i < Unistrokes.size(); i++) {
 			double d;
 
-			if (useProtractor)
+			if (useProtractor)//this is never invoked for now.
 				d = OptimalCosineDistance(Unistrokes[i].vectorizedPoints, candidate.vectorizedPoints);
 			else
 				d = DistanceAtBestAngle(candidate.points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
