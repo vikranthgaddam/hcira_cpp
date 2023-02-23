@@ -211,6 +211,7 @@ struct Result {//Result struct for displaying in canvas
 struct OfflineResult {
 std::string gestureName;
 double score;
+vector<double> Nbest;
 };
 class GestureRecognizer {
 
@@ -327,7 +328,7 @@ public:
 		auto t0 = std::chrono::high_resolution_clock::now();
 		string str = "";
 		Unistroke candidate(str, points);//resampled here for candiate or input gesture
-
+		vector<double> nbest;
 		int u = -1;//If nothing matches the initializaiton
 		double b = INFINITY; //intMAX
 		for (int i = 0; i < Unistrokes.size(); i++) {
@@ -337,12 +338,15 @@ public:
 				d = OptimalCosineDistance(Unistrokes[i].vectorizedPoints, candidate.vectorizedPoints);
 			else
 				d = DistanceAtBestAngle(candidate.points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
+				
+				double tempscore = (1.0 - d / HalfDiagonal);
+				nbest.push_back(tempscore);
 			if (d < b) {
 				b = d;
 				u = i; //its going to point at the template that is under consideration and saves the value for the same for the min distance
 			}
 		}
-
+		sort(nbest.begin(), nbest.end());
 		auto t1 = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
 		return (u == -1) ? Result("No match.", 0.0, duration) :
@@ -357,10 +361,11 @@ public:
 
 		int u = -1;//If nothing matches the initializaiton
 		double b = INFINITY; //intMAX
+		OfflineResult temp;
 		for (int i = 0; i < OfflineStrokes.size(); i++) {
 			double d;
 			d = DistanceAtBestAngle(candidatePoints, OfflineStrokes[i], -AngleRange, AngleRange, AnglePrecision);
-			OfflineResult temp;
+			
 			temp.gestureName = OfflineStrokes[u].name;
 			temp.score = 1.0 - d / HalfDiagonal;
 			final.push_back(temp);
@@ -370,7 +375,7 @@ public:
 				u = i; //its going to point at the template that is under consideration and saves the value for the same for the min distance
 			}
 		}
-
+		
 		//auto t1 = std::chrono::high_resolution_clock::now();
 		//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
 		return final;
@@ -641,27 +646,36 @@ public:
 
 		for (auto& user : preProcessedData) {
 			score[user.first] = map<int,map< string, double>>();
-			for (int gesture = 1; gesture <= 10; gesture++) {
+			for (int gesture = 1; gesture <= 9; gesture++) {
 				score[user.first][gesture] = map<string, double>();
 				score[user.first][gesture]["accuracy"] = 0.0;
-				for (int i = 1; i <= 100; i++) { //we can decrease the value to 10
+				for (int i = 1; i <=10; i++) { //we can decrease the value to 10
 					pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> split_data = getSplitData(preProcessedData[user.first]["medium"], 9);
 					map< string, vector<vector<Point>>> testing_set = split_data.first;//TEsting conatines everything from offline 160-training
 
 					map<string,vector<Point>> training_set = split_data.second;//a specific set of gestures with points training
 					GestureRecognizer recognizer(training_set);//loading templates
 					//offline strokes templates loaded
-					// Iterate over the map and its contents
+					// Iterate over the map and its content
 					for (const auto& elem : training_set) {
 						// Print the map key (a string)
-						wxLogMessage("Map key: %s", elem.first);
-
-						// Iterate over the vector of Points and print each Point
-						for (const auto& point : elem.second) {
-							wxLogMessage("  Point: (%d, %d)", point.x, point.y);
+						//wxLogMessage("Map key: %s", elem.first);
+						if (score[user.first][gesture].find(elem.first)!= score[user.first][gesture].end()) {
+							score[user.first][gesture][elem.first] = 0;
 						}
-					}
+						vector<Point> pts = elem.second;
+						auto res= recognizer.OfflineRecognize(pts,false);
+						string gestureRecognized = res.first;
 
+						if (gestureRecognized == elem.first) {
+							score[user.first][gesture][elem.first] += 1;
+						}
+						// Iterate over the vector of Points and print each Point
+						/*for (const auto& point : elem.second) {
+							wxLogMessage("  Point: (%f, %f)", point.x, point.y);
+						}*/
+					}
+					
 					//wxLogMessage(training_set[gesture])
 					//auto& templatePoints = training_set[gesture];
 					//auto& candidates = preProcessedData[user.first]["medium"][""];
