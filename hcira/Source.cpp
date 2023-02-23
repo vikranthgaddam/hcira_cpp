@@ -23,6 +23,8 @@
 #include <random>
 #include <chrono>
 #include <memory>
+#include <unordered_map>
+
 using namespace std;
 
 class Point {//Defining point struct 
@@ -209,9 +211,9 @@ struct Result {//Result struct for displaying in canvas
 };
 
 struct OfflineResult {
-std::string gestureName;
+string gestureName;
 double score;
-vector<double> Nbest;
+unordered_map<string, double> nbest;
 };
 class GestureRecognizer {
 
@@ -317,12 +319,10 @@ public:
 		for (auto& it : inputTempatePoints) {
 			string key = it.first;
 			vector<Point> value = it.second;
-			wxLogMessage("Key: %s", key);
+			//wxLogMessage("Key: %s", key);
 			this->OfflineStrokes.push_back(Unistroke(key, value));
 		}
 	}
-
-
 	Result Recognize(vector<Point>& points, bool useProtractor) {
 		//TODO Raghav Vikranth
 		auto t0 = std::chrono::high_resolution_clock::now();
@@ -353,32 +353,38 @@ public:
 			Result(Unistrokes[u].name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
 	}
 
-	vector<OfflineResult> OfflineRecognize(vector<Point>& candidatePoints, bool useProtactor) {
+	OfflineResult OfflineRecognize(vector<Point>& candidatePoints, bool useProtactor) {
 		auto t0 = std::chrono::high_resolution_clock::now();
 		string str = "";
 		//Unistroke candidate(str, candidatePoints);//resampled here for candiate or input gesture
 		vector<OfflineResult> final;
-
 		int u = -1;//If nothing matches the initializaiton
 		double b = INFINITY; //intMAX
 		OfflineResult temp;
+
 		for (int i = 0; i < OfflineStrokes.size(); i++) {
 			double d;
 			d = DistanceAtBestAngle(candidatePoints, OfflineStrokes[i], -AngleRange, AngleRange, AnglePrecision);
 			
-			temp.gestureName = OfflineStrokes[u].name;
+			temp.gestureName = OfflineStrokes[i].name;
 			temp.score = 1.0 - d / HalfDiagonal;
-			final.push_back(temp);
+			temp.nbest[temp.gestureName] = temp.score;
 			//need to sort TODO
 			if (d < b) {
 				b = d;
 				u = i; //its going to point at the template that is under consideration and saves the value for the same for the min distance
 			}
 		}
+		temp.gestureName = OfflineStrokes[u].name;
+		vector<pair<string, double>> vec(temp.nbest.begin(), temp.nbest.end());
+		sort(vec.begin(), vec.end(), [](const pair<string, double>& a, const pair<string, double>& b) {
+			return a.second < b.second;
+			});
+		unordered_map<string, double> sorted_nbest(vec.begin(), vec.end());
 		
 		//auto t1 = std::chrono::high_resolution_clock::now();
 		//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
-		return final;
+		return temp;
 	}
 
 
@@ -570,7 +576,7 @@ public:
 				}
 				offlineData[storeName]["medium"][labelList[j]] = listOfPoints;
 			}
-			wxLogMessage("offlineData:");
+			//wxLogMessage("offlineData:");
 		}
 		//for (const auto& it1 : offlineData) {
 		//	wxLogMessage("Key 1: %s", it1.first);
@@ -664,18 +670,20 @@ public:
 							score[user.first][gesture][elem.first] = 0;
 						}
 						vector<Point> pts = elem.second;
-						auto res= recognizer.OfflineRecognize(pts,false);
-						string gestureRecognized = res.first;
+						OfflineResult res= recognizer.OfflineRecognize(pts,false);
+						
+						string gestureRecognized = res.gestureName;
+						unordered_map<string,double> Nbest = res.nbest;
 
 						if (gestureRecognized == elem.first) {
 							score[user.first][gesture][elem.first] += 1;
+							wxLogMessage("HERE inside the loop recognized %s\n", elem.first);
 						}
 						// Iterate over the vector of Points and print each Point
 						/*for (const auto& point : elem.second) {
 							wxLogMessage("  Point: (%f, %f)", point.x, point.y);
 						}*/
 					}
-					
 					//wxLogMessage(training_set[gesture])
 					//auto& templatePoints = training_set[gesture];
 					//auto& candidates = preProcessedData[user.first]["medium"][""];
@@ -703,7 +711,15 @@ public:
 				score[user.first][gesture]["accuracy"] /= 100.0;
 			}
 		}
-
+		for (const auto& user : score) {
+			wxLogMessage("User: %s", user.first);
+			for (const auto& gesture : user.second) {
+				wxLogMessage("  Gesture: %d", gesture.first);
+				for (const auto& data : gesture.second) {
+					wxLogMessage("    Data: %s %f", data.first, data.second);
+				}
+			}
+		}
 		//writeToFile(dumps(score), "score.json");
 		// calculate and output average accuracy
 		double total_score = 0.0;
@@ -724,10 +740,10 @@ public:
 		map< string, vector< vector<Point>>> training_set;
 		map< string, vector<Point>> testing_set;
 		srand(time(nullptr));
-		wxLogMessage("The size of gestures map is: %d", gestures.size());
-		for (auto& user : gestures) {
+		//wxLogMessage("The size of gestures map is: %d", gestures.size());
+		/*for (auto& user : gestures) {
 			wxLogMessage("Size of %s vector: %d", user.first, user.second.size());
-		}
+		}*/
 		for (auto& gesture : gestures) {
 			//vector<vector<Point>> gesture_training_set
 			for (int i = 0; i < E; i++) {
@@ -737,7 +753,7 @@ public:
 				
 			}
 			testing_set[gesture.first] = gesture.second[rand() % (10 - E) + E];
-			wxLogMessage("YAyy");
+			//wxLogMessage("YAyy");
 		}
 		return  make_pair(training_set, testing_set);
 	}
