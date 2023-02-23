@@ -500,20 +500,19 @@ public:
 		string storeName="";
 		for (int k = 2; k <= 11; k++) {
 			if (k < 10) {
-				part = "C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s0" + to_string(k) ;
+				part = "C:/Users/91977/Downloads/xml/xml_logs/s0" + to_string(k) ;
 				storeName = "s0" + to_string(k);
 			}
 			else {
-				part = "C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s" + to_string(k);
+				part = "C:/Users/91977/Downloads/xml/xml_logs/s" + to_string(k);
 				storeName = "s" + to_string(k);
 			}
 
-			for (int j = 0; j < 15; j++) {
+			for (int j = 0; j < 16; j++) { //this is for the gestures
 				vector<vector<Point>> listOfPoints;
-				vector<Point> points;
-				const char* gestureName;
+				const char* gestureName; //initialized the gesture name
 				for (int i = 1; i <= 10; i++) {
-
+					vector<Point> points;
 					if (i < 10 ) {
 						fileName = part +"/medium/" + labelList[j] + "0" + to_string(i) + ".xml";
 					}
@@ -521,7 +520,7 @@ public:
 						fileName = part +"/medium/" + labelList[j] + to_string(i) + ".xml";
 					}
 
-					doc.LoadFile(fileName.c_str());
+					doc.LoadFile(fileName.c_str()); //C:\Users\91977\Downloads\xml\xml_logs\s02\medium\arrow01.xml
 					wxLogMessage(fileName.c_str());
 					// Get the root element of the XML document
 					tinyxml2::XMLElement* root = doc.FirstChildElement("Gesture");
@@ -548,30 +547,23 @@ public:
 						double x = point->IntAttribute("X");
 						double y = point->IntAttribute("Y");
 						double t = point->IntAttribute("T");
-						wxLogMessage("x co ordinate %f", x);
+						/*wxLogMessage("x co ordinate %f", x);
 						wxLogMessage("y co ordinate %f", y);
-						wxLogMessage("Time %f", t);
+						wxLogMessage("Time %f", t);*/
 						Point tempPoint(x, y);
 						points.push_back(tempPoint);
 						//std::cout << "X: " << x << ", Y: " << y << ", T: " << t << std::endl;
 					}
-
-					// Loop through each vector in the listOfPoints vector
-					for (const auto& vec : listOfPoints) {
-						// Loop through each Point object in the current vector
-						for (const auto& pt : vec) {
-							// Print the x and y coordinates of the current Point object to the log
-							wxLogMessage("Point: (%f, %f)", pt.x, pt.y);
-						}
-					}
-
+					listOfPoints.push_back(points);
+					
+				
 					//offlineData[""][""][""].push_back({ tempPoint });
 					//1.Capture the points from XML 
 					//2. Resample them with with unistroke and add gesture label 
 					//3. Store these points in the the class instance of GestureRecognizer
-					offlineData[storeName]["medium"][gestureName].push_back({ points });
+					//offlineData[storeName]["medium"][labelList[j]] = listOfPoints;
 				}
-
+				offlineData[storeName]["medium"][labelList[j]] = listOfPoints;
 			}
 			wxLogMessage("offlineData:");
 		}
@@ -713,21 +705,29 @@ public:
 		double average_accuracy = total_score / total_count;
 		cout << "Average accuracy: " << average_accuracy << endl;
 	}
-	
+											
 	pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> getSplitData(map< string, vector< vector<Point>>> &gestures, int E) {
 		map< string, vector< vector<Point>>> training_set;
 		map< string, vector<Point>> testing_set;
 		srand(time(nullptr));
+		wxLogMessage("The size of gestures map is: %d", gestures.size());
+		for (auto& user : gestures) {
+			wxLogMessage("Size of %s vector: %d", user.first, user.second.size());
+		}
 		for (auto& gesture : gestures) {
+			//vector<vector<Point>> gesture_training_set
 			for (int i = 0; i < E; i++) {
 				//arrow01 =vector of Points
+				//wxLogMessage("gesture[%s][%d]: %f", gesture.first, i, gesture.second[]);
+				training_set[gesture.first ].push_back(gesture.second[i]);
 				
-				training_set[gesture.first] = { gesture.second[i] };
 			}
 			testing_set[gesture.first] = gesture.second[rand() % (10 - E) + E];
+			wxLogMessage("YAyy");
 		}
 		return  make_pair(training_set, testing_set);
 	}
+
 };
 
 
