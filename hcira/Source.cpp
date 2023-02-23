@@ -511,11 +511,11 @@ public:
 		string storeName="";
 		for (int k = 2; k <= 11; k++) {
 			if (k < 10) {
-				part = "C:/Users/91977/Downloads/xml/xml_logs/s0" + to_string(k) ;
+				part = "C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s0" + to_string(k) ;
 				storeName = "s0" + to_string(k);
 			}
 			else {
-				part = "C:/Users/91977/Downloads/xml/xml_logs/s" + to_string(k);
+				part = "C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s" + to_string(k);
 				storeName = "s" + to_string(k);
 			}
 
@@ -532,7 +532,7 @@ public:
 					}
 
 					doc.LoadFile(fileName.c_str()); //C:\Users\91977\Downloads\xml\xml_logs\s02\medium\arrow01.xml
-					wxLogMessage(fileName.c_str());
+					//wxLogMessage(fileName.c_str());
 					// Get the root element of the XML document
 					tinyxml2::XMLElement* root = doc.FirstChildElement("Gesture");
 
@@ -607,7 +607,7 @@ public:
 			for (auto& speed : user.second) {
 				if (speed.first == "medium") {
 					for (auto& gesture : speed.second) {
-						wxLogMessage("");
+						//wxLogMessage("");
 						preProcessedData[user.first][speed.first][gesture.first] = vector< vector<Point>>();
 						for (auto& temp : gesture.second) {
 							//gesture name , points
@@ -646,15 +646,11 @@ public:
 		//n best list sort of 
 		map< string, map<int, map< string, double>>> score;
 
-		//for every user 
-		//for each speed
-		//then we have a 
-
 		for (auto& user : preProcessedData) {
-			score[user.first] = map<int,map< string, double>>();
+			//score[user.first] = map<int,map< string, double>>();
 			for (int gesture = 1; gesture <= 9; gesture++) {
-				score[user.first][gesture] = map<string, double>();
-				score[user.first][gesture]["accuracy"] = 0.0;
+				//score[user.first][gesture] = map<string, double>();
+				//score[user.first][gesture]["accuracy"] = 0.0;
 				for (int i = 1; i <=10; i++) { //we can decrease the value to 10
 					pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> split_data = getSplitData(preProcessedData[user.first]["medium"], 9);
 					map< string, vector<vector<Point>>> testing_set = split_data.first;//TEsting conatines everything from offline 160-training
@@ -674,10 +670,11 @@ public:
 						
 						string gestureRecognized = res.gestureName;
 						unordered_map<string,double> Nbest = res.nbest;
+												
 
 						if (gestureRecognized == elem.first) {
 							score[user.first][gesture][elem.first] += 1;
-							wxLogMessage("HERE inside the loop recognized %s\n", elem.first);
+							//wxLogMessage("HERE inside the loop recognized %s\n", elem.first);
 						}
 						// Iterate over the vector of Points and print each Point
 						/*for (const auto& point : elem.second) {
@@ -708,7 +705,7 @@ public:
 					//	score[user.first][gesture]["accuracy"] += 1.0;
 					//}
 				}
-				score[user.first][gesture]["accuracy"] /= 100.0;
+				score[user.first][gesture]["accuracy"] /= 10.0;
 			}
 		}
 		for (const auto& user : score) {
@@ -720,7 +717,8 @@ public:
 				}
 			}
 		}
-		//writeToFile(dumps(score), "score.json");
+		bool result=writeToFile(score);
+		wxLogMessage("Print successfully done %s",to_string(result));
 		// calculate and output average accuracy
 		double total_score = 0.0;
 		int total_count = 0;
@@ -734,6 +732,35 @@ public:
 		}
 		double average_accuracy = total_score / total_count;
 		cout << "Average accuracy: " << average_accuracy << endl;
+	}
+
+	bool writeToFile(map< string, map<int, map< string, double>>> score) {
+		std::ofstream outfile("output.csv");
+
+		// Check if the file was opened successfully
+		if (!outfile.is_open()) {
+			std::cerr << "Failed to open file for writing." << std::endl;
+			return false;
+		}
+
+		// Write the data to the file as comma-separated values
+		// Header row
+		outfile << "User,GestureID,GestureName,Score" << std::endl;
+		for (const auto& user : score) {
+			for (const auto& gesture_id : user.second) {
+				for (const auto& gesture_name_score : gesture_id.second) {
+					outfile << user.first << ","
+						<< gesture_id.first << ","
+						<< gesture_name_score.first << ","
+						<< gesture_name_score.second << std::endl;
+				}
+			}
+		}
+
+		// Close the file
+		outfile.close();
+		return true;
+	
 	}
 											
 	pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> getSplitData(map< string, vector< vector<Point>>> &gestures, int E) {
