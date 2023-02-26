@@ -798,18 +798,28 @@ public:
     //Canvas for drawing 
     MyCanvas(wxWindow* parent) : wxWindow(parent, wxID_ANY)
     {
-        Connect(wxEVT_PAINT, wxPaintEventHandler(MyCanvas::OnPaint));
-        Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
-        Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
-        Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
-		  m_output = new wxStaticText(this, wxID_ANY, "");
+		Connect(wxEVT_PAINT, wxPaintEventHandler(MyCanvas::OnPaint));
+		Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
+		Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
+		Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
+		m_prompt = new wxStaticText(this, wxID_ANY, "Draw a circle");
+		m_output = new wxStaticText(this, wxID_ANY, "");
+		m_counter = new wxStaticText(this, wxID_ANY, "0 / 160");
+
 		wxFont font(20, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 		m_font = font;
 		m_output->SetFont(m_font);
+		m_counter->SetFont(m_font);
+
+		wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+		sizer->Add(m_prompt, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
+		sizer->Add(m_output, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
+		sizer->Add(m_counter, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20); // add counter to sizer
+		SetSizer(sizer);
 		//XML Files points to be loaded
-		OfflineRecognizer a;
+		/*OfflineRecognizer a;
 		a.preProcessOfflineData();
-		a.recognizeOfflineData();
+		a.recognizeOfflineData();*/ //commented out the code for the offline recognizer
 		
 
 		// Log a message
@@ -818,6 +828,12 @@ public:
 		
     }
 private:
+	wxStaticText* m_prompt;
+	wxStaticText* m_counter;
+	vector<string> labelList = { "triangle","x","rectangle","circle","check","caret","arrow","left_sq_bracket",
+			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","question_mark" };
+	unordered_map<string, int> mp;
+	int counter = 0;
     //event handler is called when the canvas is repainted
     void OnPaint(wxPaintEvent& event)
     {
@@ -844,23 +860,48 @@ private:
     //event handler is called when the left mouse button is released
     void OnLeftUp(wxMouseEvent& event)
     {
+		//radnomly generating a number for the index to choose a label.
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0, labelList.size() - 1);
+		int current_gesture = dis(gen);
+
+
         m_points.push_back(event.GetPosition());
-        ReleaseMouse();
+    
         points.clear();
+		
         for (auto& wxPoint : m_points) {
             points.emplace_back(wxPoint.x, wxPoint.y);
         }
-		GestureRecognizer GR;//Our $1 recognizer object
-		
+		//static size_t current_gesture = 0;
+		if (mp[labelList[current_gesture]] <= 10) {
+			
+			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
+			m_prompt->SetLabel(next_gesture);
+		}
+		else if (counter > 10 && counter <= 160) {
+			m_prompt->SetLabel("Draw a different gesture");
+		}
+		else {
+			m_prompt->SetLabel("All gestures complete");
+		}
+		wxString counterStr = wxString::Format("Counter: %d", counter);
+		m_counter->SetLabel(counterStr);
 
-		Result res = GR.Recognize(points, false);
-		wxString outputStr = wxString::Format("Result: %s (%f) in %d ms", res.Name, res.Score, res.Time);
-        m_output->SetLabel(outputStr);
+		//commented this out for collecting the points and we are not recognizing the gestures.
+		//GestureRecognizer GR;//Our $1 recognizer object
+		//
+		
+		//Result res = GR.Recognize(points, false);
+		//wxString outputStr = wxString::Format("Result: %s (%f) in %d ms", res.Name, res.Score, res.Time);
+        //m_output->SetLabel(outputStr);
 			
    
         //for (auto point : points) {
         //    cout << "x: " << point.x << " y: " << point.y << endl; //this didn't write the output on the console rather has to set a breakpoint to check the values of the variables.
         //}
+		ReleaseMouse();
         Refresh();
     }
     //function event handler is called when the mouse is moved
@@ -868,7 +909,7 @@ private:
     {
         if (event.Dragging() && event.LeftIsDown())
         {
-			m_output->SetLabel("Recording unistroke...");
+			//m_output->SetLabel("Recording unistroke...");
             m_points.push_back(event.GetPosition());
             Refresh();
         }
