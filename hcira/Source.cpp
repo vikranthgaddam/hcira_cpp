@@ -802,7 +802,7 @@ public:
 		Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
 		Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
 		Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
-		m_prompt = new wxStaticText(this, wxID_ANY, "Draw a circle");
+		m_prompt = new wxStaticText(this, wxID_ANY, "Draw a triangle");
 		m_output = new wxStaticText(this, wxID_ANY, "");
 		m_counter = new wxStaticText(this, wxID_ANY, "0 / 160");
 
@@ -834,6 +834,7 @@ private:
 			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","question_mark" };
 	unordered_map<string, int> mp;
 	int counter = 0;
+	int current_gesture = 0;
     //event handler is called when the canvas is repainted
     void OnPaint(wxPaintEvent& event)
     {
@@ -861,11 +862,8 @@ private:
     void OnLeftUp(wxMouseEvent& event)
     {
 		//radnomly generating a number for the index to choose a label.
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<> dis(0, labelList.size() - 1);
-		int current_gesture = dis(gen);
-
+		
+		//int current_gesture = 0;
 
         m_points.push_back(event.GetPosition());
     
@@ -875,17 +873,43 @@ private:
             points.emplace_back(wxPoint.x, wxPoint.y);
         }
 		//static size_t current_gesture = 0;
-		if (mp[labelList[current_gesture]] <= 10) {
+		if (counter < 160 && mp[labelList[current_gesture]] < 10) {
 			
 			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
 			m_prompt->SetLabel(next_gesture);
+			mp[labelList[current_gesture]]++;
+			counter++;
+			//[VIKRANTH]: gesture is drawn so you can now save it in the file with the name string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]])
+			//and the vector is already ready so you just need to push it. 
+			//data structure map<string(gesture name), map<string(useName), vector<Point>(storing the points)>>>
 		}
-		else if (counter > 10 && counter <= 160) {
-			m_prompt->SetLabel("Draw a different gesture");
+		else if (counter < 160 && mp[labelList[current_gesture]] >= 10) {
+			//current_gesture++;
+			/*for (auto label : labelList) {
+				wxLogMessage("Before %s\n", label);
+			}*/
+			auto it = labelList.begin()+current_gesture;
+
+			labelList.erase(it);
+			/*for (auto label : labelList) {
+				wxLogMessage("after %s\n", label);
+			}*/
+			/*wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
+			m_prompt->SetLabel(next_gesture);*/
+			//continue;
 		}
 		else {
+			//TO DO VIKRANTH : save these points into an xml file, I think I have also laid out the flow. 
 			m_prompt->SetLabel("All gestures complete");
+			for (auto label : mp) {
+				wxLogMessage("Gesture %s: %d", label.first, label.second);
+			}
 		}
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> dis(0, labelList.size() - 1);
+		current_gesture = dis(gen);
 		wxString counterStr = wxString::Format("Counter: %d", counter);
 		m_counter->SetLabel(counterStr);
 
