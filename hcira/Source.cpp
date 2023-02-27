@@ -212,8 +212,23 @@ struct Result {//Result struct for displaying in canvas
 
 struct OfflineResult {
 string gestureName;
-double score;
-unordered_map<string, double> nbest;
+double score=0.0;
+vector<pair<string, double>> nbest;
+};
+
+struct LogData {
+	string User;
+	string GestureType;
+	string RandomIteration;
+	int NoTrainingExample;
+	int TotalSizeOfTrainingSet;
+	vector<string>TrainingSetContents;
+	string candidateSpecificInstance;
+	string RecoResultGestureType;//what was recognized
+	bool correct;
+	string RecoResultScore;
+	string RecoResultBestMatch;
+	vector<pair<string, double>> RecoResultNBest;
 };
 class GestureRecognizer {
 
@@ -315,12 +330,13 @@ public:
 	std::vector<Unistroke> Unistrokes;
 	std::vector<Unistroke> OfflineStrokes;
 
-	GestureRecognizer(map<string, vector<Point>>& inputTempatePoints) {
+	GestureRecognizer(map<string, vector<vector<Point>>>& inputTempatePoints) {
 		for (auto& it : inputTempatePoints) {
 			string key = it.first;
-			vector<Point> value = it.second;
-			//wxLogMessage("Key: %s", key);
-			this->OfflineStrokes.push_back(Unistroke(key, value));
+			vector<vector<Point>> value = it.second;
+			for (int i = 0; i < value.size();i++) {
+					this->OfflineStrokes.push_back(Unistroke(key, value[i]));
+			}
 		}
 	}
 	Result Recognize(vector<Point>& points, bool useProtractor) {
@@ -352,6 +368,9 @@ public:
 		return (u == -1) ? Result("No match.", 0.0, duration) :
 			Result(Unistrokes[u].name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), duration);
 	}
+	bool comparePair(const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
+		return a.second > b.second;
+	}
 
 	OfflineResult OfflineRecognize(vector<Point>& candidatePoints, bool useProtactor) {
 		auto t0 = std::chrono::high_resolution_clock::now();
@@ -361,6 +380,7 @@ public:
 		int u = -1;//If nothing matches the initializaiton
 		double b = INFINITY; //intMAX
 		OfflineResult temp;
+		vector<pair<string, double>> t1;
 
 		for (int i = 0; i < OfflineStrokes.size(); i++) {
 			double d;
@@ -368,7 +388,8 @@ public:
 			
 			temp.gestureName = OfflineStrokes[i].name;
 			temp.score = 1.0 - d / HalfDiagonal;
-			temp.nbest[temp.gestureName] = temp.score;
+			string name = temp.gestureName+"-"+ to_string((i+1)%10);
+			t1.push_back(make_pair(name,temp.score));
 			//need to sort TODO
 			if (d < b) {
 				b = d;
@@ -376,16 +397,15 @@ public:
 			}
 		}
 		temp.gestureName = OfflineStrokes[u].name;
-		vector<pair<string, double>> vec(temp.nbest.begin(), temp.nbest.end());
-		sort(vec.begin(), vec.end(), [](const pair<string, double>& a, const pair<string, double>& b) {
-			return a.second < b.second;
-			});
-		unordered_map<string, double> sorted_nbest(vec.begin(), vec.end());
-		
+		temp.score = (1.0 - b / HalfDiagonal);
+		std::sort(t1.begin(), t1.end(), std::bind(&GestureRecognizer::comparePair, this, std::placeholders::_1, std::placeholders::_2));
+		temp.nbest = t1;
+		t1.clear();
 		//auto t1 = std::chrono::high_resolution_clock::now();
 		//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
 		return temp;
 	}
+	
 
 
 
@@ -644,71 +664,151 @@ public:
 
 	void recognizeOfflineData() {
 		//n best list sort of 
-		map< string, map<int, map< string, double>>> score;
+		map< string, map<int, map< string, double>>> score;//loading 
+		double total = 0;
+		double correct = 0;
+		std::ofstream outfile("output.csv");
+		LogData log;
 
-		for (auto& user : preProcessedData) {
-			//score[user.first] = map<int,map< string, double>>();
-			for (int gesture = 1; gesture <= 9; gesture++) {
-				//score[user.first][gesture] = map<string, double>();
-				//score[user.first][gesture]["accuracy"] = 0.0;
-				for (int i = 1; i <=10; i++) { //we can decrease the value to 10
-					pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> split_data = getSplitData(preProcessedData[user.first]["medium"], 9);
-					map< string, vector<vector<Point>>> testing_set = split_data.first;//TEsting conatines everything from offline 160-training
-
-					map<string,vector<Point>> training_set = split_data.second;//a specific set of gestures with points training
-					GestureRecognizer recognizer(training_set);//loading templates
-					//offline strokes templates loaded
-					// Iterate over the map and its content
-					for (const auto& elem : training_set) {
-						// Print the map key (a string)
-						//wxLogMessage("Map key: %s", elem.first);
-						if (score[user.first][gesture].find(elem.first)!= score[user.first][gesture].end()) {
-							score[user.first][gesture][elem.first] = 0;
-						}
-						vector<Point> pts = elem.second;
-						OfflineResult res= recognizer.OfflineRecognize(pts,false);
-						
-						string gestureRecognized = res.gestureName;
-						unordered_map<string,double> Nbest = res.nbest;
-												
-
-						if (gestureRecognized == elem.first) {
-							score[user.first][gesture][elem.first] += 1;
-							//wxLogMessage("HERE inside the loop recognized %s\n", elem.first);
-						}
-						// Iterate over the vector of Points and print each Point
-						/*for (const auto& point : elem.second) {
-							wxLogMessage("  Point: (%f, %f)", point.x, point.y);
-						}*/
-					}
-					//wxLogMessage(training_set[gesture])
-					//auto& templatePoints = training_set[gesture];
-					//auto& candidates = preProcessedData[user.first]["medium"][""];
-					//vector<int> selected_templates;
-					//vector<int> selected_candidates;
-					//// select E random templates
-					//while (selected_templates.size() < 9) {
-					//	int idx = rand() % templatePoints.size();
-					//	if (find(selected_templates.begin(), selected_templates.end(), idx) == selected_templates.end()) {
-					//		selected_templates.push_back(idx);
-					//	}
-					//}
-					//// select one random candidate
-					//int candidate_idx = rand() % candidates.size();
-					//string candidate_name = candidates[candidate_idx].first;
-					//// recognize candidate using selected templates
-					////"arrow01""{"0.1","0.2"}"
-					//map<string, vector<double>> s;
-					//auto [recognizedGesture, _, _, Nbest] = recognizer.recognizeGesture(candidates[candidate_idx].second, templates, 1);
-					//recognizedGesture = recognizedGesture.find("/") != string::npos ? recognizedGesture.substr(0, recognizedGesture.find("/")) : "";
-					//if (recognizedGesture == candidate_name) {
-					//	score[user.first][gesture]["accuracy"] += 1.0;
-					//}
-				}
-				score[user.first][gesture]["accuracy"] /= 10.0;
-			}
+		// Check if the file was opened successfully
+		if (!outfile.is_open()) {
+			std::cerr << "Failed to open file for writing." << std::endl;
 		}
-		for (const auto& user : score) {
+
+		//User[all-users]	GestureType[all-gestures-types]	RandomIteration[1to100]	#ofTrainingExamples[E]	TotalSizeOfTrainingSet[count]	TrainingSetContents[specific-gesture-instances]	Candidate[specific-instance]	RecoResultGestureType[what-was-recognized]	CorrectIncorrect[1or0]	RecoResultScore	RecoResultBestMatch[specific-instance]	RecoResultNBestSorted[instance-and-score]
+
+		outfile << "User[all-users],GestureType[all-gesture-types],RandomIteration[1to10],#ofTrainingExample[E],TotalSizeOfTrainingSet[count],TrainingSetContents[specific-gesture-instances],Candidate[specific-instance],RecoResultGestureType[what-was-recognized],CorrectIncorrect[1or0],RecoResultScore,RecoResultBestMatch[specific-instance],RecoResultNBestSorted[instance-and-score]" << std::endl;
+		for (auto& user : preProcessedData) {
+			//if (user.first == "s02")
+			{
+				log.User = user.first;
+				//score[user.first] = map<int,map< string, double>>();
+				for (int gesture = 1; gesture <= 9; gesture++) { //this is the value of the 
+
+					//score[user.first][gesture] = map<string, double>();
+					//score[user.first][gesture]["accuracy"] = 0.0;
+					for (int i = 1; i <= 10; i++) { //we can decrease the value to 10
+
+						log.RandomIteration = to_string(i);
+						log.NoTrainingExample = 10;
+						pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> split_data = getSplitData(preProcessedData[user.first]["medium"], 9);
+						map< string, vector<vector<Point>>> train_set = split_data.first;//TEsting conatines everything from offline 160-training
+						map<string, vector<Point>> test_set = split_data.second;//a specific set of gestures with points training
+						log.TotalSizeOfTrainingSet = train_set.size();
+						for (auto& elem : train_set) {
+							string temp = user.first + "-" + elem.first + "-" + to_string(i);
+							log.TrainingSetContents.push_back(elem.first);
+						}
+						/*for (auto& elem : test_set) {
+							log.candidateSpecificInstance = user.first + "-" + elem.first + "-" + to_string(i);
+							log.GestureType = elem.first;
+						}*/
+
+
+						GestureRecognizer recognizer(train_set);//loading templates
+
+						//offline strokes templates loaded
+						// Iterate over the map and its content
+						for (const auto& elem : test_set) {
+
+							// Print the map key (a string)
+							//wxLogMessage("Map key: %s", elem.first);
+							/*if (score[user.first][gesture].find(elem.first)!= score[user.first][gesture].end()) {
+								wxLogMessage("First value %f", score[user.first][gesture][elem.first]);
+								score[user.first][gesture][elem.first] = 0;
+
+							}*/
+
+							//Traingin set 3 value //candidate value //Recognized geture value //Correct or incorect recoscore //specific instance is from recognizer Nbest lits from recognizer
+
+							vector<Point> pts = elem.second;//candidates pts
+							OfflineResult res = recognizer.OfflineRecognize(pts, false);
+
+							string gestureRecognized = res.gestureName;
+							vector<pair<string, double>> Nbest = res.nbest;
+
+							log.RecoResultGestureType = gestureRecognized;
+							log.correct = gestureRecognized == elem.first;
+							log.RecoResultScore = to_string(res.score);
+							log.RecoResultBestMatch = user.first + "-" + res.gestureName + "-" + to_string(i);
+							log.RecoResultNBest = res.nbest;
+
+
+							if (gestureRecognized == elem.first) {
+
+								score[user.first][gesture][elem.first] += 1;
+								log.candidateSpecificInstance = user.first + "-" + elem.first + "-" + to_string(i);
+								log.GestureType = elem.first;
+								//wxLogMessage("Matched score %f", score[user.first][gesture][elem.first]);
+								correct += 1.0;
+								//wxLogMessage("HERE inside the loop recognized %s\n", elem.first);
+							}
+
+							total += 1.0;
+							// Iterate over the vector of Points and print each Point
+							/*for (const auto& point : elem.second) {
+								wxLogMessage("  Point: (%f, %f)", point.x, point.y);
+							//}*/
+							//string User;
+							//string GestureType;
+							//string RandomIteration;
+							//int NoTrainingExample;
+							//int TotalSizeOfTrainingSet;
+							//vector<string>TrainingSetContents;
+							//string candidateSpecificInstance;
+							//string RecoResultGestureType;//what was recognized
+							//bool correct;
+							//string RecoResultScore;
+							//string RecoResultBestMatch;
+							//unordered_map<string, double> RecoResultNBest;
+							string contents;
+							for (auto& str : log.TrainingSetContents) {
+								contents += str + ";";
+							}
+							/*string NbestString;
+							for (auto& pair : log.RecoResultNBest) {
+								NbestString += pair.first + ";" + to_string(pair.second) + ";";
+							}*/
+							std::string nbestStr = vectorToString(log.RecoResultNBest);
+							outfile << log.User << "," << log.GestureType << "," << log.RandomIteration << "," << log.NoTrainingExample << "," << log.TotalSizeOfTrainingSet << "," << contents << "," << log.candidateSpecificInstance << "," << log.RecoResultGestureType << "," << to_string(log.correct) << "," << log.RecoResultScore << "," << log.RecoResultBestMatch << "," << nbestStr << endl;
+
+						}
+						//wxLogMessage(training_set[gesture])
+						//auto& templatePoints = training_set[gesture];
+						//auto& candidates = preProcessedData[user.first]["medium"][""];
+						//vector<int> selected_templates;
+						//vector<int> selected_candidates;
+						//// select E random templates
+						//while (selected_templates.size() < 9) {
+						//	int idx = rand() % templatePoints.size();
+						//	if (find(selected_templates.begin(), selected_templates.end(), idx) == selected_templates.end()) {
+						//		selected_templates.push_back(idx);
+						//	}
+						//}
+						//// select one random candidate
+						//int candidate_idx = rand() % candidates.size();
+						//string candidate_name = candidates[candidate_idx].first;
+						//// recognize candidate using selected templates
+						////"arrow01""{"0.1","0.2"}"
+						//map<string, vector<double>> s;
+						//auto [recognizedGesture, _, _, Nbest] = recognizer.recognizeGesture(candidates[candidate_idx].second, templates, 1);
+						//recognizedGesture = recognizedGesture.find("/") != string::npos ? recognizedGesture.substr(0, recognizedGesture.find("/")) : "";
+						//if (recognizedGesture == candidate_name) {
+						//	score[user.first][gesture]["accuracy"] += 1.0;
+						//}
+					}
+
+					//score[user.first][gesture]["accuracy"] =(correct/total) * 100.0;
+				}
+			}
+			
+		}
+		wxLogMessage("total %f",total);
+		wxLogMessage("correct %f",correct);
+
+		outfile << "The Total Accuracy" << endl;
+		outfile << to_string((correct/total)*100.0) << endl;
+		/*for (const auto& user : score) {
 			wxLogMessage("User: %s", user.first);
 			for (const auto& gesture : user.second) {
 				wxLogMessage("  Gesture: %d", gesture.first);
@@ -716,25 +816,26 @@ public:
 					wxLogMessage("    Data: %s %f", data.first, data.second);
 				}
 			}
-		}
-		bool result=writeToFile(score);
-		wxLogMessage("Print successfully done %s",to_string(result));
+		}*/
+		outfile.close();
+		//bool result=writeToFile(score);
+		//wxLogMessage("Print successfully done %s",to_string(result));
 		// calculate and output average accuracy
-		double total_score = 0.0;
-		int total_count = 0;
-		for (auto& user : score) {
-			for (auto& example : user.second) {
-				for (auto& gesture : example.second) {
-					total_score += gesture.second;
-					total_count++;
-				}
-			}
+
+	}
+
+	std::string vectorToString(const std::vector<std::pair<std::string, double>>& v) {
+		std::stringstream ss;
+		for (const auto& p : v) {
+			ss << p.first << ";" << p.second << ";";
 		}
-		double average_accuracy = total_score / total_count;
-		cout << "Average accuracy: " << average_accuracy << endl;
+		return ss.str();
 	}
 
 	bool writeToFile(map< string, map<int, map< string, double>>> score) {
+		//Traingin set 3 value //candidate value //Recognized geture value //Correct or incorect recoscore //specific instance is from recognizer Nbest lits from recognizer
+
+
 		std::ofstream outfile("output.csv");
 
 		// Check if the file was opened successfully
@@ -745,6 +846,8 @@ public:
 
 		// Write the data to the file as comma-separated values
 		// Header row
+		//User[all-users]	GestureType[all-gestures-types]	RandomIteration[1to100]	#ofTrainingExamples[E]	TotalSizeOfTrainingSet[count]	TrainingSetContents[specific-gesture-instances]	Candidate[specific-instance]	RecoResultGestureType[what-was-recognized]	CorrectIncorrect[1or0]	RecoResultScore	RecoResultBestMatch[specific-instance]	RecoResultNBestSorted[instance-and-score]
+
 		outfile << "User,GestureID,GestureName,Score" << std::endl;
 		for (const auto& user : score) {
 			for (const auto& gesture_id : user.second) {
