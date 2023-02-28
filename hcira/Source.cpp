@@ -31,10 +31,16 @@ class Point {//Defining point struct
 public:
     double x;
     double y;
+	int t;
     Point(double x, double y) {
         this->x = x;
         this->y = y;
     }
+	Point(double x, double y, int t) {
+		this->x = x;
+		this->y = y;
+		this->t = t;
+	}
 };
 
 struct Rect { //Defining rectangle for bounding box
@@ -783,6 +789,54 @@ public:
 			//wxLogMessage("YAyy");
 		}
 		return  make_pair(training_set, testing_set);
+	}
+
+};
+
+struct CollectDataStruct {
+	string filename;
+	string subject;
+	string date;
+	string TimeOfDay;
+	string speed;
+
+};
+
+class CollectData {
+
+	void savePointsToXml(const std::vector<Point>& points, const std::string& filename)
+	{
+		// Create the XML document
+		tinyxml2::XMLDocument doc;
+		tinyxml2::XMLDeclaration* decl = doc.NewDeclaration();
+		doc.InsertFirstChild(decl);
+
+		// Create the root element
+		tinyxml2::XMLElement* root = doc.NewElement("Gesture");
+		root->SetAttribute("Name", filename.c_str());
+		root->SetAttribute("Subject", "2");
+		root->SetAttribute("Speed", "medium");
+		root->SetAttribute("Number", "1");
+		root->SetAttribute("NumPts", points.size());
+		root->SetAttribute("Millseconds", "1268");
+		root->SetAttribute("AppName", "Gestures");
+		root->SetAttribute("AppVer", "3.5.0.0");
+		root->SetAttribute("Date", "Monday, March 05, 2007");
+		root->SetAttribute("TimeOfDay", "9:12:24 PM");
+		doc.InsertEndChild(root);
+
+		// Add each point as a child element
+		for (const Point& p : points)
+		{
+			tinyxml2::XMLElement* pointElement = doc.NewElement("Point");
+			pointElement->SetAttribute("X", p.x);
+			pointElement->SetAttribute("Y", p.y);
+			pointElement->SetAttribute("T", p.t);
+			root->InsertEndChild(pointElement);
+		}
+
+		// Save the document to file
+		doc.SaveFile(filename.c_str());
 	}
 
 };
