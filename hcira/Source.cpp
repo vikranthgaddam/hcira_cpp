@@ -884,7 +884,11 @@ public:
 		wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 		sizer->Add(m_prompt, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
 		sizer->Add(m_output, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
-		sizer->Add(m_counter, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20); // add counter to sizer
+		sizer->Add(m_counter, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
+		
+		
+		
+		// adding buttons
 		SetSizer(sizer);
 		//XML Files points to be loaded
 		/*OfflineRecognizer a;
@@ -942,14 +946,16 @@ private:
         for (auto& wxPoint : m_points) {
             points.emplace_back(wxPoint.x, wxPoint.y);
         }
-		string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]]) +".xml";
-		dataCollection.savePointsToXml(m_points, name);
+		
 		//static size_t current_gesture = 0;
 		if (counter < 160 && mp[labelList[current_gesture]] < 10) {
 			
 			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
 			m_prompt->SetLabel(next_gesture);
 			mp[labelList[current_gesture]]++;
+			int score = mp[labelList[current_gesture]];
+			string name = labelList[current_gesture] + to_string(score) + ".xml";
+			dataCollection.savePointsToXml(m_points, name);
 			counter++;
 			//[VIKRANTH]: gesture is drawn so you can now save it in the file with the name string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]])
 			//and the vector is already ready so you just need to push it. 
