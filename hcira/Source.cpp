@@ -24,8 +24,9 @@
 #include <chrono>
 #include <memory>
 #include <unordered_map>
-
+#include <filesystem>
 using namespace std;
+
 
 class Point {//Defining point struct 
 public:
@@ -803,10 +804,11 @@ struct CollectDataStruct {
 };
 
 class CollectData {
-
-	void savePointsToXml(const std::vector<Point>& points, const std::string& filename)
+public:
+	void savePointsToXml(const std::vector<wxPoint>& points, const std::string& filename)
 	{
 		// Create the XML document
+		
 		tinyxml2::XMLDocument doc;
 		tinyxml2::XMLDeclaration* decl = doc.NewDeclaration();
 		doc.InsertFirstChild(decl);
@@ -814,29 +816,42 @@ class CollectData {
 		// Create the root element
 		tinyxml2::XMLElement* root = doc.NewElement("Gesture");
 		root->SetAttribute("Name", filename.c_str());
-		root->SetAttribute("Subject", "2");
+		/*root->SetAttribute("Subject", "2");
 		root->SetAttribute("Speed", "medium");
-		root->SetAttribute("Number", "1");
+		root->SetAttribute("Number", "1");*/
 		root->SetAttribute("NumPts", points.size());
-		root->SetAttribute("Millseconds", "1268");
+		/*root->SetAttribute("Millseconds", "1268");
 		root->SetAttribute("AppName", "Gestures");
 		root->SetAttribute("AppVer", "3.5.0.0");
 		root->SetAttribute("Date", "Monday, March 05, 2007");
-		root->SetAttribute("TimeOfDay", "9:12:24 PM");
+		root->SetAttribute("TimeOfDay", "9:12:24 PM");*/
 		doc.InsertEndChild(root);
 
 		// Add each point as a child element
-		for (const Point& p : points)
+		for (const wxPoint& p : points)
 		{
 			tinyxml2::XMLElement* pointElement = doc.NewElement("Point");
 			pointElement->SetAttribute("X", p.x);
 			pointElement->SetAttribute("Y", p.y);
-			pointElement->SetAttribute("T", p.t);
 			root->InsertEndChild(pointElement);
+		}
+		std::filesystem::path folderPath("user_inputs");
+		if (!std::filesystem::is_directory(folderPath))
+		{
+			if (!std::filesystem::create_directory(folderPath))
+			{
+				std::cerr << "Failed to create directory: " << folderPath << std::endl;
+				return;
+			}
+		}
+		// Save the document to file in the folder
+		std::filesystem::path filePath = folderPath / filename;
+		if (doc.SaveFile(filePath.string().c_str()) != tinyxml2::XML_SUCCESS)
+		{
+			std::cerr << "Failed to save XML file: " << filePath << std::endl;
 		}
 
 		// Save the document to file
-		doc.SaveFile(filename.c_str());
 	}
 
 };
@@ -889,6 +904,7 @@ private:
 	unordered_map<string, int> mp;
 	int counter = 0;
 	int current_gesture = 0;
+	CollectData dataCollection;
     //event handler is called when the canvas is repainted
     void OnPaint(wxPaintEvent& event)
     {
@@ -908,7 +924,6 @@ private:
     {
         m_points.clear();
         m_points.push_back(event.GetPosition());
-
         //a.Recognize(m_points,true); did't use this again 
         CaptureMouse();
     }
@@ -926,6 +941,8 @@ private:
         for (auto& wxPoint : m_points) {
             points.emplace_back(wxPoint.x, wxPoint.y);
         }
+		string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]]) +".xml";
+		dataCollection.savePointsToXml(m_points, name);
 		//static size_t current_gesture = 0;
 		if (counter < 160 && mp[labelList[current_gesture]] < 10) {
 			
