@@ -835,6 +835,8 @@ public:
 			pointElement->SetAttribute("Y", p.y);
 			root->InsertEndChild(pointElement);
 		}
+
+		// Create the folder if it doesn't exist
 		std::filesystem::path folderPath("user_inputs");
 		if (!std::filesystem::is_directory(folderPath))
 		{
@@ -850,7 +852,6 @@ public:
 		{
 			std::cerr << "Failed to save XML file: " << filePath << std::endl;
 		}
-
 		// Save the document to file
 	}
 
