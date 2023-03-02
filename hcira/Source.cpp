@@ -816,8 +816,8 @@ public:
 		// Create the root element
 		tinyxml2::XMLElement* root = doc.NewElement("Gesture");
 		root->SetAttribute("Name", filename.c_str());
-		/*root->SetAttribute("Subject", "2");
-		root->SetAttribute("Speed", "medium");
+		root->SetAttribute("Subject", "1");
+		/*root->SetAttribute("Speed", "medium");
 		root->SetAttribute("Number", "1");*/
 		root->SetAttribute("NumPts", points.size());
 		/*root->SetAttribute("Millseconds", "1268");
@@ -914,7 +914,7 @@ private:
 	wxButton* m_clearButton;
 	wxButton* m_submitButton;
 	vector<string> labelList = { "triangle","x","rectangle","circle","check","caret","arrow","left_sq_bracket",
-			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","question_mark" };
+			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","zig-zag" };
 	unordered_map<string, int> mp;
 	int counter = 0;
 	int current_gesture = 0;
