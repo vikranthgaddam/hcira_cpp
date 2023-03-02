@@ -30,13 +30,13 @@ using namespace std;
 
 class Point {//Defining point struct 
 public:
-    double x;
-    double y;
+	double x;
+	double y;
 	int t;
-    Point(double x, double y) {
-        this->x = x;
-        this->y = y;
-    }
+	Point(double x, double y) {
+		this->x = x;
+		this->y = y;
+	}
 	Point(double x, double y, int t) {
 		this->x = x;
 		this->y = y;
@@ -213,14 +213,14 @@ struct Result {//Result struct for displaying in canvas
 	std::string Name;
 	double Score;
 	int Time;
-	
+
 	Result(const std::string& name, double score, int time) : Name(name), Score(score), Time(time) {}
 };
 
 struct OfflineResult {
-string gestureName;
-double score;
-unordered_map<string, double> nbest;
+	string gestureName;
+	double score;
+	unordered_map<string, double> nbest;
 };
 class GestureRecognizer {
 
@@ -345,9 +345,9 @@ public:
 				d = OptimalCosineDistance(Unistrokes[i].vectorizedPoints, candidate.vectorizedPoints);
 			else
 				d = DistanceAtBestAngle(candidate.points, Unistrokes[i], -AngleRange, AngleRange, AnglePrecision);
-				
-				double tempscore = (1.0 - d / HalfDiagonal);
-				nbest.push_back(tempscore);
+
+			double tempscore = (1.0 - d / HalfDiagonal);
+			nbest.push_back(tempscore);
 			if (d < b) {
 				b = d;
 				u = i; //its going to point at the template that is under consideration and saves the value for the same for the min distance
@@ -372,7 +372,7 @@ public:
 		for (int i = 0; i < OfflineStrokes.size(); i++) {
 			double d;
 			d = DistanceAtBestAngle(candidatePoints, OfflineStrokes[i], -AngleRange, AngleRange, AnglePrecision);
-			
+
 			temp.gestureName = OfflineStrokes[i].name;
 			temp.score = 1.0 - d / HalfDiagonal;
 			temp.nbest[temp.gestureName] = temp.score;
@@ -388,7 +388,7 @@ public:
 			return a.second < b.second;
 			});
 		unordered_map<string, double> sorted_nbest(vec.begin(), vec.end());
-		
+
 		//auto t1 = std::chrono::high_resolution_clock::now();
 		//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();//Time elapsed
 		return temp;
@@ -505,20 +505,20 @@ public:
 
 	//$1n algo
 	//GestureRecognizer recognizer;
-	
+
 	//Input points from XML Files 
 	OfflineRecognizer() {
 		tinyxml2::XMLDocument doc;
 		wxLog::SetActiveTarget(new wxLogStderr);
 		//XML File 
 		vector<string> labelList = { "triangle","x","rectangle","circle","check","caret","arrow","left_sq_bracket",
-			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","question_mark"};
+			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","question_mark" };
 		string fileName = "";
 		string part = "";
-		string storeName="";
+		string storeName = "";
 		for (int k = 2; k <= 11; k++) {
 			if (k < 10) {
-				part = "C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s0" + to_string(k) ;
+				part = "C:/Users/vikra/Desktop/HCIRA/xml/xml_logs/s0" + to_string(k);
 				storeName = "s0" + to_string(k);
 			}
 			else {
@@ -531,11 +531,11 @@ public:
 				const char* gestureName; //initialized the gesture name
 				for (int i = 1; i <= 10; i++) {
 					vector<Point> points;
-					if (i < 10 ) {
-						fileName = part +"/medium/" + labelList[j] + "0" + to_string(i) + ".xml";
+					if (i < 10) {
+						fileName = part + "/medium/" + labelList[j] + "0" + to_string(i) + ".xml";
 					}
 					else {
-						fileName = part +"/medium/" + labelList[j] + to_string(i) + ".xml";
+						fileName = part + "/medium/" + labelList[j] + to_string(i) + ".xml";
 					}
 
 					doc.LoadFile(fileName.c_str()); //C:\Users\91977\Downloads\xml\xml_logs\s02\medium\arrow01.xml
@@ -573,8 +573,8 @@ public:
 						//std::cout << "X: " << x << ", Y: " << y << ", T: " << t << std::endl;
 					}
 					listOfPoints.push_back(points);
-					
-				
+
+
 					//offlineData[""][""][""].push_back({ tempPoint });
 					//1.Capture the points from XML 
 					//2. Resample them with with unistroke and add gesture label 
@@ -620,7 +620,7 @@ public:
 							//gesture name , points
 							string s = gesture.first;
 							Unistroke unistroke(s, temp);
-							preProcessedData[user.first][speed.first][gesture.first].push_back({ unistroke.points});
+							preProcessedData[user.first][speed.first][gesture.first].push_back({ unistroke.points });
 						}
 					}
 				}
@@ -658,26 +658,26 @@ public:
 			for (int gesture = 1; gesture <= 9; gesture++) {
 				//score[user.first][gesture] = map<string, double>();
 				//score[user.first][gesture]["accuracy"] = 0.0;
-				for (int i = 1; i <=10; i++) { //we can decrease the value to 10
+				for (int i = 1; i <= 10; i++) { //we can decrease the value to 10
 					pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> split_data = getSplitData(preProcessedData[user.first]["medium"], 9);
 					map< string, vector<vector<Point>>> testing_set = split_data.first;//TEsting conatines everything from offline 160-training
 
-					map<string,vector<Point>> training_set = split_data.second;//a specific set of gestures with points training
+					map<string, vector<Point>> training_set = split_data.second;//a specific set of gestures with points training
 					GestureRecognizer recognizer(training_set);//loading templates
 					//offline strokes templates loaded
 					// Iterate over the map and its content
 					for (const auto& elem : training_set) {
 						// Print the map key (a string)
 						//wxLogMessage("Map key: %s", elem.first);
-						if (score[user.first][gesture].find(elem.first)!= score[user.first][gesture].end()) {
+						if (score[user.first][gesture].find(elem.first) != score[user.first][gesture].end()) {
 							score[user.first][gesture][elem.first] = 0;
 						}
 						vector<Point> pts = elem.second;
-						OfflineResult res= recognizer.OfflineRecognize(pts,false);
-						
+						OfflineResult res = recognizer.OfflineRecognize(pts, false);
+
 						string gestureRecognized = res.gestureName;
-						unordered_map<string,double> Nbest = res.nbest;
-												
+						unordered_map<string, double> Nbest = res.nbest;
+
 
 						if (gestureRecognized == elem.first) {
 							score[user.first][gesture][elem.first] += 1;
@@ -724,8 +724,8 @@ public:
 				}
 			}
 		}
-		bool result=writeToFile(score);
-		wxLogMessage("Print successfully done %s",to_string(result));
+		bool result = writeToFile(score);
+		wxLogMessage("Print successfully done %s", to_string(result));
 		// calculate and output average accuracy
 		double total_score = 0.0;
 		int total_count = 0;
@@ -767,10 +767,10 @@ public:
 		// Close the file
 		outfile.close();
 		return true;
-	
+
 	}
-											
-	pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> getSplitData(map< string, vector< vector<Point>>> &gestures, int E) {
+
+	pair< map< string, vector< vector<Point>>>, map< string, vector<Point>>> getSplitData(map< string, vector< vector<Point>>>& gestures, int E) {
 		map< string, vector< vector<Point>>> training_set;
 		map< string, vector<Point>> testing_set;
 		srand(time(nullptr));
@@ -783,8 +783,8 @@ public:
 			for (int i = 0; i < E; i++) {
 				//arrow01 =vector of Points
 				//wxLogMessage("gesture[%s][%d]: %f", gesture.first, i, gesture.second[]);
-				training_set[gesture.first ].push_back(gesture.second[i]);
-				
+				training_set[gesture.first].push_back(gesture.second[i]);
+
 			}
 			testing_set[gesture.first] = gesture.second[rand() % (10 - E) + E];
 			//wxLogMessage("YAyy");
@@ -808,7 +808,7 @@ public:
 	void savePointsToXml(const std::vector<wxPoint>& points, const std::string& filename)
 	{
 		// Create the XML document
-		
+
 		tinyxml2::XMLDocument doc;
 		tinyxml2::XMLDeclaration* decl = doc.NewDeclaration();
 		doc.InsertFirstChild(decl);
@@ -865,10 +865,10 @@ public:
 class MyCanvas : public wxWindow
 {
 public:
-    //Canvas for drawing 
-    MyCanvas(wxWindow* parent) : wxWindow(parent, wxID_ANY)
-    {
-		
+	//Canvas for drawing 
+	MyCanvas(wxWindow* parent) : wxWindow(parent, wxID_ANY)
+	{
+
 		m_prompt = new wxStaticText(this, wxID_ANY, "Draw a triangle");
 		m_output = new wxStaticText(this, wxID_ANY, "");
 		m_counter = new wxStaticText(this, wxID_ANY, "0 / 160");
@@ -896,18 +896,18 @@ public:
 		Connect(m_submitButton->GetId(), wxEVT_BUTTON, wxCommandEventHandler(MyCanvas::OnSubmitButtonClick));
 
 
-		
+
 		//XML Files points to be loaded
 		/*OfflineRecognizer a;
 		a.preProcessOfflineData();
 		a.recognizeOfflineData();*/ //commented out the code for the offline recognizer
-		
+
 
 		// Log a message
 		//wxLogMessage("Hello, world!");
-		
-		
-    }
+
+
+	}
 private:
 	wxStaticText* m_prompt;
 	wxStaticText* m_counter;
@@ -919,20 +919,20 @@ private:
 	int counter = 0;
 	int current_gesture = 0;
 	CollectData dataCollection;
-    //event handler is called when the canvas is repainted
-    void OnPaint(wxPaintEvent& event)
-    {
-        wxPaintDC dc(this);
-        wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
+	//event handler is called when the canvas is repainted
+	void OnPaint(wxPaintEvent& event)
+	{
+		wxPaintDC dc(this);
+		wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
 
-        gc->SetPen(wxPen(*wxRED, 5));
-        for (size_t i = 1; i < m_points.size(); i++)
-        {
-            dc.DrawLine(m_points[i - 1].x, m_points[i - 1].y, m_points[i].x, m_points[i].y);
-        }
+		gc->SetPen(wxPen(*wxRED, 5));
+		for (size_t i = 1; i < m_points.size(); i++)
+		{
+			dc.DrawLine(m_points[i - 1].x, m_points[i - 1].y, m_points[i].x, m_points[i].y);
+		}
 
-        delete gc;
-    }
+		delete gc;
+	}
 	// event handler is called when the "Clear" button is clicked
 	void OnClearButtonClick(wxCommandEvent& event)
 	{
@@ -944,14 +944,15 @@ private:
 		/*for (auto& wxPoint : m_points) {
 			points.emplace_back(wxPoint.x, wxPoint.y);
 		}*/
-		string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]]) + ".xml";
-		dataCollection.savePointsToXml(m_points, name);
+
 		//static size_t current_gesture = 0;
 		if (counter < 160 && mp[labelList[current_gesture]] < 10) {
 
 			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
 			m_prompt->SetLabel(next_gesture);
 			mp[labelList[current_gesture]]++;
+			string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]]) + ".xml";
+			dataCollection.savePointsToXml(m_points, name);
 			counter++;
 			//[VIKRANTH]: gesture is drawn so you can now save it in the file with the name string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]])
 			//and the vector is already ready so you just need to push it. 
@@ -988,60 +989,60 @@ private:
 		current_gesture = dis(gen);
 		wxString counterStr = wxString::Format("Counter: %d", counter);
 		m_counter->SetLabel(counterStr);
-	
+
 	}
 
-    //event handler is called when the left mouse button is pressed and pushes position to m_points
-    void OnLeftDown(wxMouseEvent& event)
-    {
-        //m_points.clear();
-        m_points.push_back(event.GetPosition());
-        //a.Recognize(m_points,true); did't use this again 
-        CaptureMouse();
-    }
-    //event handler is called when the left mouse button is released
-    void OnLeftUp(wxMouseEvent& event)
-    {
+	//event handler is called when the left mouse button is pressed and pushes position to m_points
+	void OnLeftDown(wxMouseEvent& event)
+	{
+		//m_points.clear();
+		m_points.push_back(event.GetPosition());
+		//a.Recognize(m_points,true); did't use this again 
+		CaptureMouse();
+	}
+	//event handler is called when the left mouse button is released
+	void OnLeftUp(wxMouseEvent& event)
+	{
 		//radnomly generating a number for the index to choose a label.
-		
+
 		//int current_gesture = 0;
 
-        m_points.push_back(event.GetPosition());
-    
-        points.clear();
-		
-      
+		m_points.push_back(event.GetPosition());
+
+		points.clear();
+
+
 
 		//commented this out for collecting the points and we are not recognizing the gestures.
 		//GestureRecognizer GR;//Our $1 recognizer object
 		//
-		
+
 		//Result res = GR.Recognize(points, false);
 		//wxString outputStr = wxString::Format("Result: %s (%f) in %d ms", res.Name, res.Score, res.Time);
-        //m_output->SetLabel(outputStr);
-			
-   
-        //for (auto point : points) {
-        //    cout << "x: " << point.x << " y: " << point.y << endl; //this didn't write the output on the console rather has to set a breakpoint to check the values of the variables.
-        //}
-		ReleaseMouse();
-        Refresh();
-    }
-    //function event handler is called when the mouse is moved
-    void OnMotion(wxMouseEvent& event)
-    {
-        if (event.Dragging() && event.LeftIsDown())
-        {
-			//m_output->SetLabel("Recording unistroke...");
-            m_points.push_back(event.GetPosition());
-            Refresh();
-        }
-    }
+		//m_output->SetLabel(outputStr);
 
-    vector<wxPoint> m_points;
-    //points being stored for future reference
-    vector<Point> points;
-    wxStaticText* m_output;
+
+		//for (auto point : points) {
+		//    cout << "x: " << point.x << " y: " << point.y << endl; //this didn't write the output on the console rather has to set a breakpoint to check the values of the variables.
+		//}
+		ReleaseMouse();
+		Refresh();
+	}
+	//function event handler is called when the mouse is moved
+	void OnMotion(wxMouseEvent& event)
+	{
+		if (event.Dragging() && event.LeftIsDown())
+		{
+			//m_output->SetLabel("Recording unistroke...");
+			m_points.push_back(event.GetPosition());
+			Refresh();
+		}
+	}
+
+	vector<wxPoint> m_points;
+	//points being stored for future reference
+	vector<Point> points;
+	wxStaticText* m_output;
 
 };
 
@@ -1051,33 +1052,32 @@ private:
 class MyApp : public wxApp
 {
 public:
-    virtual bool OnInit()
-    {
-        wxFrame* frame = new wxFrame(NULL, wxID_ANY, "$1 Recognizer");
-       MyCanvas* canvas = new MyCanvas(frame);
+	virtual bool OnInit()
+	{
+		wxFrame* frame = new wxFrame(NULL, wxID_ANY, "$1 Recognizer");
+		MyCanvas* canvas = new MyCanvas(frame);
 		frame->Show();
-	
-	
-        return true;
-    }
+
+
+		return true;
+	}
 
 	void LoadVal() {
 		//Importing points from XML to my data set of points
 		//16 gestures from 10 users 
 		//Total 11 files
 
-	
+
 	}
 
 
 
 
-	
-	
+
+
 
 };
 
 
 //creates an instance of the MyApp
 wxIMPLEMENT_APP(MyApp);
-
