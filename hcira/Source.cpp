@@ -868,13 +868,12 @@ public:
     //Canvas for drawing 
     MyCanvas(wxWindow* parent) : wxWindow(parent, wxID_ANY)
     {
-		Connect(wxEVT_PAINT, wxPaintEventHandler(MyCanvas::OnPaint));
-		Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
-		Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
-		Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
+		
 		m_prompt = new wxStaticText(this, wxID_ANY, "Draw a triangle");
 		m_output = new wxStaticText(this, wxID_ANY, "");
 		m_counter = new wxStaticText(this, wxID_ANY, "0 / 160");
+		m_clearButton = new wxButton(this, wxID_ANY, "Clear");
+		m_submitButton = new wxButton(this, wxID_ANY, "Submit");
 
 		wxFont font(20, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 		m_font = font;
@@ -883,13 +882,21 @@ public:
 
 		wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 		sizer->Add(m_prompt, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
-		sizer->Add(m_output, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
-		sizer->Add(m_counter, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 20);
-		
-		
-		
-		// adding buttons
+		sizer->Add(m_output, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 0);
+		sizer->Add(m_counter, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 0); // add counter to sizer
+		sizer->Add(m_clearButton, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 0);
+		sizer->Add(m_submitButton, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 0);
 		SetSizer(sizer);
+
+		Connect(wxEVT_PAINT, wxPaintEventHandler(MyCanvas::OnPaint));
+		Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
+		Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
+		Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
+		Connect(m_clearButton->GetId(), wxEVT_BUTTON, wxCommandEventHandler(MyCanvas::OnClearButtonClick));
+		Connect(m_submitButton->GetId(), wxEVT_BUTTON, wxCommandEventHandler(MyCanvas::OnSubmitButtonClick));
+
+
+		
 		//XML Files points to be loaded
 		/*OfflineRecognizer a;
 		a.preProcessOfflineData();
@@ -904,6 +911,8 @@ public:
 private:
 	wxStaticText* m_prompt;
 	wxStaticText* m_counter;
+	wxButton* m_clearButton;
+	wxButton* m_submitButton;
 	vector<string> labelList = { "triangle","x","rectangle","circle","check","caret","arrow","left_sq_bracket",
 			"right_sq_bracket","v","delete_mark","left_curly_brace","right_curly_brace","star","pigtail","question_mark" };
 	unordered_map<string, int> mp;
@@ -924,38 +933,25 @@ private:
 
         delete gc;
     }
-    //event handler is called when the left mouse button is pressed and pushes position to m_points
-    void OnLeftDown(wxMouseEvent& event)
-    {
-        m_points.clear();
-        m_points.push_back(event.GetPosition());
-        //a.Recognize(m_points,true); did't use this again 
-        CaptureMouse();
-    }
-    //event handler is called when the left mouse button is released
-    void OnLeftUp(wxMouseEvent& event)
-    {
-		//radnomly generating a number for the index to choose a label.
-		
-		//int current_gesture = 0;
+	// event handler is called when the "Clear" button is clicked
+	void OnClearButtonClick(wxCommandEvent& event)
+	{
+		m_points.clear();
+		Refresh();
+	}
 
-        m_points.push_back(event.GetPosition());
-    
-        points.clear();
-		
-        for (auto& wxPoint : m_points) {
-            points.emplace_back(wxPoint.x, wxPoint.y);
-        }
-		
+	void OnSubmitButtonClick(wxCommandEvent& event) {
+		/*for (auto& wxPoint : m_points) {
+			points.emplace_back(wxPoint.x, wxPoint.y);
+		}*/
+		string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]]) + ".xml";
+		dataCollection.savePointsToXml(m_points, name);
 		//static size_t current_gesture = 0;
 		if (counter < 160 && mp[labelList[current_gesture]] < 10) {
-			
+
 			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
 			m_prompt->SetLabel(next_gesture);
 			mp[labelList[current_gesture]]++;
-			int score = mp[labelList[current_gesture]];
-			string name = labelList[current_gesture] + to_string(score) + ".xml";
-			dataCollection.savePointsToXml(m_points, name);
 			counter++;
 			//[VIKRANTH]: gesture is drawn so you can now save it in the file with the name string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]])
 			//and the vector is already ready so you just need to push it. 
@@ -966,7 +962,7 @@ private:
 			/*for (auto label : labelList) {
 				wxLogMessage("Before %s\n", label);
 			}*/
-			auto it = labelList.begin()+current_gesture;
+			auto it = labelList.begin() + current_gesture;
 
 			labelList.erase(it);
 			/*for (auto label : labelList) {
@@ -983,6 +979,8 @@ private:
 				wxLogMessage("Gesture %s: %d", label.first, label.second);
 			}
 		}
+		m_points.clear();
+		Refresh();
 
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -990,6 +988,29 @@ private:
 		current_gesture = dis(gen);
 		wxString counterStr = wxString::Format("Counter: %d", counter);
 		m_counter->SetLabel(counterStr);
+	
+	}
+
+    //event handler is called when the left mouse button is pressed and pushes position to m_points
+    void OnLeftDown(wxMouseEvent& event)
+    {
+        //m_points.clear();
+        m_points.push_back(event.GetPosition());
+        //a.Recognize(m_points,true); did't use this again 
+        CaptureMouse();
+    }
+    //event handler is called when the left mouse button is released
+    void OnLeftUp(wxMouseEvent& event)
+    {
+		//radnomly generating a number for the index to choose a label.
+		
+		//int current_gesture = 0;
+
+        m_points.push_back(event.GetPosition());
+    
+        points.clear();
+		
+      
 
 		//commented this out for collecting the points and we are not recognizing the gestures.
 		//GestureRecognizer GR;//Our $1 recognizer object
