@@ -816,7 +816,7 @@ public:
 		// Create the root element
 		tinyxml2::XMLElement* root = doc.NewElement("Gesture");
 		root->SetAttribute("Name", filename.c_str());
-		root->SetAttribute("Subject", "1");
+		root->SetAttribute("Subject", "2");
 		/*root->SetAttribute("Speed", "medium");
 		root->SetAttribute("Number", "1");*/
 		root->SetAttribute("NumPts", points.size());
@@ -869,7 +869,7 @@ public:
 	MyCanvas(wxWindow* parent) : wxWindow(parent, wxID_ANY)
 	{
 
-		m_prompt = new wxStaticText(this, wxID_ANY, "Draw a triangle");
+		m_prompt = new wxStaticText(this, wxID_ANY, "$1 Unistroke: Click on submit to start");
 		m_output = new wxStaticText(this, wxID_ANY, "");
 		m_counter = new wxStaticText(this, wxID_ANY, "0 / 160");
 		m_clearButton = new wxButton(this, wxID_ANY, "Clear");
@@ -890,10 +890,11 @@ public:
 
 		Connect(wxEVT_PAINT, wxPaintEventHandler(MyCanvas::OnPaint));
 		Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MyCanvas::OnLeftDown));
-		Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
-		Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
 		Connect(m_clearButton->GetId(), wxEVT_BUTTON, wxCommandEventHandler(MyCanvas::OnClearButtonClick));
 		Connect(m_submitButton->GetId(), wxEVT_BUTTON, wxCommandEventHandler(MyCanvas::OnSubmitButtonClick));
+		Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MyCanvas::OnLeftUp));
+		Connect(wxEVT_MOTION, wxMouseEventHandler(MyCanvas::OnMotion));
+		
 
 
 
@@ -946,26 +947,34 @@ private:
 		}*/
 
 		//static size_t current_gesture = 0;
-		if (counter < 160 && mp[labelList[current_gesture]] < 10) {
-
+		//
+		if (counter < 160 && mp[labelList[current_gesture]] != 10) {
+			
+			
 			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
 			m_prompt->SetLabel(next_gesture);
 			mp[labelList[current_gesture]]++;
 			string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]]) + ".xml";
 			dataCollection.savePointsToXml(m_points, name);
 			counter++;
+			current_gesture++;
+			
 			//[VIKRANTH]: gesture is drawn so you can now save it in the file with the name string name = labelList[current_gesture] + to_string(mp[labelList[current_gesture]])
 			//and the vector is already ready so you just need to push it. 
 			//data structure map<string(gesture name), map<string(useName), vector<Point>(storing the points)>>>
 		}
-		else if (counter < 160 && mp[labelList[current_gesture]] >= 10) {
+		
+		else if (counter < 160 && mp[labelList[current_gesture]] == 10) {
 			//current_gesture++;
 			/*for (auto label : labelList) {
 				wxLogMessage("Before %s\n", label);
 			}*/
-			auto it = labelList.begin() + current_gesture;
+			/*auto it = labelList.begin() + current_gesture;
 
-			labelList.erase(it);
+			labelList.erase(it);*/
+			current_gesture++;
+			wxString next_gesture = wxString::Format("Draw a %s", labelList[current_gesture]);
+			m_prompt->SetLabel(next_gesture);
 			/*for (auto label : labelList) {
 				wxLogMessage("after %s\n", label);
 			}*/
@@ -983,10 +992,7 @@ private:
 		m_points.clear();
 		Refresh();
 
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<> dis(0, labelList.size() - 1);
-		current_gesture = dis(gen);
+		
 		wxString counterStr = wxString::Format("Counter: %d", counter);
 		m_counter->SetLabel(counterStr);
 
